@@ -1,0 +1,57 @@
+name: long_H120_monthly_family_ablation_score_history_quantile_v0
+side: long
+horizon_minutes: 120
+fixed_hold_minutes: 120
+roundtrip_cost_bps: 15.0
+cooldown_after_exit_minutes: 15
+same_side_reentry_block_minutes: 30
+
+paths:
+  ohlcv: data/processed/binance_japan/BTCJPY/1m/ohlcv.parquet
+  labels: outputs/valid/labels/btcjpy_1m_labels.parquet
+  model_config: configs/models/lgbm_entry_v0.yaml
+
+training:
+  train_months: 9
+  valid_months: 3
+  test_months: 1
+  step_months: 1
+  label_lag_minutes: 180
+  # Used as the pre-period score buffer for score_history_quantile.
+  # This is intentionally not an in-period rolling threshold.
+  score_history_days: 120
+  max_train_rows: null
+  force_col_wise: true
+  downcast_float32: true
+  save_models: false
+
+entry_selection:
+  # Use the pre-period score_history distribution for each valid/test month.
+  # effective_threshold = max(q995(score_history.pred_entry_net_bps), score_floor_bps)
+  mode: score_history_quantile
+  score_quantile: 0.995
+  score_floor_bps: 0.0
+  score_quantile_min_periods: 30000
+  # Kept only for compatibility; ignored by score_history_quantile mode.
+  score_window_days: 60
+  rolling_score_min_periods: 30000
+
+selector:
+  robust_worst_weight: 0.5
+  robust_median_weight: 0.25
+  min_total_episode_count: 10
+  min_active_valid_folds: 2
+  max_worst_valid_loss_bps: -1000000
+  min_delta_to_switch_bps: 0.0
+
+family_ablation:
+  base_features: data/processed/binance_japan/BTCJPY/1m/features_entry_v3b.parquet
+  manifest: outputs/valid/features/entry_feature_manifest_v3b.json
+  policy_prefix: lofo_long_H120
+  policy_output_dir: data/processed/binance_japan/BTCJPY/1m/family_policies/long_H120_monthly_v0
+  output_format: parquet
+  overwrite_policies: false
+  families: null
+  exclude_families: null
+
+feature_policies: []

@@ -20,6 +20,7 @@ import pandas as pd
 
 from swing_bot.artifacts.io import read_yaml, write_frame, write_json
 from swing_bot.backtest.fixed_hold import FixedHoldBacktestConfig, run_fixed_hold_backtest
+from swing_bot.backtest.metrics import summarize_episode_metrics
 from swing_bot.backtest.policy import EpisodePolicyConfig
 from swing_bot.evaluation.episode_report import write_episode_report
 from swing_bot.labels.entry_net_return import entry_target_column
@@ -59,6 +60,8 @@ class RollingMonthlyConfig:
     score_quantile: float
     score_floor_bps: float
     rolling_score_min_periods: int
+    entry_selection_mode: str
+    score_quantile_min_periods: int
     roundtrip_cost_bps: float
     cooldown_after_exit_minutes: int
     same_side_reentry_block_minutes: int
@@ -184,9 +187,11 @@ def load_rolling_monthly_config(path: Path | str) -> RollingMonthlyConfig:
         labels_path=Path(paths.get("labels", "outputs/valid/labels/btcjpy_1m_labels.parquet")),
         ohlcv_path=Path(paths.get("ohlcv", "data/processed/binance_japan/BTCJPY/1m/ohlcv.parquet")),
         score_window_days=int(entry.get("score_window_days", 60)),
-        score_quantile=float(entry.get("score_quantile", 0.995)),
+        score_quantile=float(entry.get("score_quantile", entry.get("train_score_quantile", 0.995))),
         score_floor_bps=float(entry.get("score_floor_bps", 40.0)),
         rolling_score_min_periods=int(entry.get("rolling_score_min_periods", 30000)),
+        entry_selection_mode=str(entry.get("mode", "rolling_quantile")),
+        score_quantile_min_periods=int(entry.get("score_quantile_min_periods", entry.get("rolling_score_min_periods", 30000))),
         roundtrip_cost_bps=float(raw.get("roundtrip_cost_bps", 15.0)),
         cooldown_after_exit_minutes=int(raw.get("cooldown_after_exit_minutes", 15)),
         same_side_reentry_block_minutes=int(raw.get("same_side_reentry_block_minutes", 30)),
@@ -305,6 +310,137 @@ def _fit_predict_segment(
     return pred_df, hist_df, meta
 
 
+def _sum_skipped(summaries: list[dict[str, Any]]) -> dict[str, int]:
+    keys: set[str] = set()
+    for summary in summaries:
+        skipped = summary.get("skipped") or {}
+        if isinstance(skipped, dict):
+            keys.update(str(k) for k in skipped.keys())
+    return {key: int(sum(int((summary.get("skipped") or {}).get(key, 0) or 0) for summary in summaries)) for key in sorted(keys)}
+
+
+def _threshold_from_history(
+    *,
+    score_history: pd.DataFrame,
+    fold_name: str,
+    pred_col: str,
+    quantile: float,
+    floor_bps: float,
+    min_periods: int,
+) -> tuple[float, float, int]:
+    if score_history is None or score_history.empty:
+        return float("inf"), float("nan"), 0
+    hist = score_history.copy()
+    if "fold" in hist.columns:
+        allowed = {str(fold_name), "*", "all", "global", "train"}
+        hist = hist[hist["fold"].astype(str).isin(allowed)].copy()
+    if hist.empty or pred_col not in hist.columns:
+        return float("inf"), float("nan"), 0
+    scores = pd.to_numeric(hist[pred_col], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+    count = int(len(scores))
+    if count < int(min_periods):
+        return float("inf"), float("nan"), count
+    q = float(np.quantile(scores.to_numpy(dtype="float64"), float(quantile)))
+    threshold = float(max(q, float(floor_bps)))
+    return threshold, q, count
+
+
+def _backtest_score_history_quantile(
+    *,
+    ohlcv: pd.DataFrame,
+    predictions: pd.DataFrame,
+    score_history: pd.DataFrame,
+    cfg: RollingMonthlyConfig,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+    """Backtest using one fixed threshold per evaluation fold/month.
+
+    The threshold is computed from strictly pre-period score_history rows:
+        max(quantile(score_history.pred, cfg.score_quantile), cfg.score_floor_bps)
+
+    This is intended for monthly rolling research where score_history contains
+    the 120d (or configured) pre-period scores produced by that month/fold's
+    model.  It avoids rolling-in-period warmup and does not use evaluation-month
+    score distribution.
+    """
+    all_episodes: list[pd.DataFrame] = []
+    all_fold_metrics: list[dict[str, Any]] = []
+    fold_threshold_rows: list[dict[str, Any]] = []
+    summaries: list[dict[str, Any]] = []
+    pred_col = "pred_entry_net_bps"
+    for fold_name, group in predictions.groupby("fold", sort=True):
+        threshold, raw_q, hist_count = _threshold_from_history(
+            score_history=score_history,
+            fold_name=str(fold_name),
+            pred_col=pred_col,
+            quantile=cfg.score_quantile,
+            floor_bps=cfg.score_floor_bps,
+            min_periods=cfg.score_quantile_min_periods,
+        )
+        policy = EpisodePolicyConfig(
+            entry_threshold_bps=threshold,
+            hold_threshold_bps=0.0,
+            roundtrip_cost_bps=cfg.roundtrip_cost_bps,
+            max_hold_minutes=cfg.fixed_hold_minutes,
+            decision_interval_minutes=5,
+            cooldown_after_exit_minutes=cfg.cooldown_after_exit_minutes,
+            same_side_reentry_block_minutes=cfg.same_side_reentry_block_minutes,
+        )
+        backtest_cfg = FixedHoldBacktestConfig(
+            side=cfg.side,
+            entry_horizon_minutes=cfg.horizon_minutes,
+            fixed_hold_minutes=cfg.fixed_hold_minutes,
+            policy=policy,
+            entry_selection_mode="threshold",
+            entry_score_floor_bps=threshold,
+        )
+        episodes, fold_metrics, summary = run_fixed_hold_backtest(ohlcv=ohlcv, entry_oof=group.copy(), config=backtest_cfg)
+        if not episodes.empty:
+            episodes = episodes.copy()
+            episodes["entry_selection_mode"] = "score_history_quantile"
+            episodes["score_history_quantile"] = float(cfg.score_quantile)
+            episodes["score_history_quantile_threshold_bps"] = float(raw_q)
+            episodes["effective_entry_threshold_bps"] = float(threshold)
+            episodes["entry_threshold_bps"] = float(threshold)
+            episodes["entry_score_floor_bps"] = float(cfg.score_floor_bps)
+            episodes["score_history_rows_for_threshold"] = int(hist_count)
+        all_episodes.append(episodes)
+        all_fold_metrics.extend(fold_metrics)
+        summaries.append(summary)
+        fold_threshold_rows.append({
+            "fold": str(fold_name),
+            "score_history_rows_for_threshold": int(hist_count),
+            "score_history_quantile": float(cfg.score_quantile),
+            "score_history_quantile_threshold_bps": raw_q,
+            "score_floor_bps": float(cfg.score_floor_bps),
+            "effective_entry_threshold_bps": threshold,
+        })
+    episodes_df = pd.concat(all_episodes, ignore_index=True) if all_episodes else pd.DataFrame()
+    summary = summarize_episode_metrics(all_fold_metrics)
+    summary.update({
+        "episode_count": int(len(episodes_df)),
+        "side": cfg.side,
+        "entry_horizon_minutes": int(cfg.horizon_minutes),
+        "fixed_hold_minutes": int(cfg.fixed_hold_minutes),
+        "entry_selection_mode": "score_history_quantile",
+        "rolling_history_mode": "score_history",
+        "entry_threshold_bps": float("nan"),
+        "entry_score_floor_bps": float(cfg.score_floor_bps),
+        "score_history_rows": int(0 if score_history is None else len(score_history)),
+        "score_history_quantile": float(cfg.score_quantile),
+        "score_quantile_min_periods": int(cfg.score_quantile_min_periods),
+        "fold_thresholds": fold_threshold_rows,
+        "hold_threshold_bps": float("nan"),
+        "roundtrip_cost_bps": float(cfg.roundtrip_cost_bps),
+        "skipped": _sum_skipped(summaries),
+        "notes": [
+            "Fixed-hold monthly research backtest using pre-period score-history quantile thresholds.",
+            "The score quantile is computed from score_history rows only; evaluation-month score distribution is not used.",
+            "Roundtrip cost is charged once per completed episode.",
+        ],
+    })
+    return episodes_df, pd.DataFrame(all_fold_metrics), summary
+
+
 def _backtest(
     *,
     ohlcv: pd.DataFrame,
@@ -312,6 +448,11 @@ def _backtest(
     score_history: pd.DataFrame,
     cfg: RollingMonthlyConfig,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+    mode = str(cfg.entry_selection_mode)
+    if mode in {"score_history_quantile", "preperiod_quantile", "train_tail_quantile"}:
+        return _backtest_score_history_quantile(ohlcv=ohlcv, predictions=predictions, score_history=score_history, cfg=cfg)
+    if mode != "rolling_quantile":
+        raise ValueError(f"unsupported monthly entry_selection mode: {mode}")
     policy = EpisodePolicyConfig(
         entry_threshold_bps=cfg.score_floor_bps,
         hold_threshold_bps=0.0,
@@ -562,6 +703,10 @@ def run_rolling_monthly_research(
             "config_name": config.name,
             "cycle_count": len(cycles),
             "feature_policies": [p.__dict__ for p in config.feature_policies],
+            "entry_selection_mode": config.entry_selection_mode,
+            "score_quantile": config.score_quantile,
+            "score_floor_bps": config.score_floor_bps,
+            "score_quantile_min_periods": config.score_quantile_min_periods,
             "notes": [
                 "Each rolling test month selects a feature policy from the prior valid months only.",
                 "Test month metrics are not used to change selector rules inside this run.",
