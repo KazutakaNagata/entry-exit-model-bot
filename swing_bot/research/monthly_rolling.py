@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 import gc
+import json
 import datetime as _dt
 
 import numpy as np
@@ -44,6 +45,7 @@ class FeaturePolicy:
     name: str
     features_path: Path
     description: str = ""
+    drop_families: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -84,6 +86,9 @@ class RollingMonthlyConfig:
     save_models: bool = False
     cache_policy_data: bool = False
     log_progress: bool = True
+    combine_improving_single_drops: bool = True
+    combined_drop_metric_col: str = "robust_score"
+    combined_drop_min_delta_bps: float = 0.0
 
     @property
     def target_col(self) -> str:
@@ -156,6 +161,34 @@ def build_monthly_cycles(
     return cycles
 
 
+
+def _parse_list_like(value: Any) -> tuple[str, ...]:
+    if value is None or value == "":
+        return ()
+    if isinstance(value, (list, tuple, set)):
+        return tuple(str(v).strip() for v in value if str(v).strip())
+    text = str(value).strip()
+    if not text:
+        return ()
+    if text.startswith("[") and text.endswith("]"):
+        try:
+            parsed = json.loads(text.replace("'", '"'))
+            if isinstance(parsed, list):
+                return tuple(str(v).strip() for v in parsed if str(v).strip())
+        except Exception:
+            pass
+    return tuple(v.strip() for v in text.split(",") if v.strip())
+
+
+def _parse_score_history_days(value: Any, *, default: int = 120) -> int:
+    """Return days, or -1 to mean the actual model train rows."""
+    if value is None or value == "":
+        return int(default)
+    text = str(value).strip().lower()
+    if text in {"train", "train_period", "all_train", "fit", "fit_window"}:
+        return -1
+    return int(float(value))
+
 def load_rolling_monthly_config(path: Path | str, *, allow_empty_feature_policies: bool = False) -> RollingMonthlyConfig:
     raw = read_yaml(path)
     if not isinstance(raw, dict):
@@ -167,6 +200,7 @@ def load_rolling_monthly_config(path: Path | str, *, allow_empty_feature_policie
                 name=str(item["name"]),
                 features_path=Path(item["features"]),
                 description=str(item.get("description") or ""),
+                drop_families=_parse_list_like(item.get("drop_families")),
             )
         )
     if not policies and not allow_empty_feature_policies:
@@ -184,7 +218,7 @@ def load_rolling_monthly_config(path: Path | str, *, allow_empty_feature_policie
         valid_months=int(train.get("valid_months", 3)),
         test_months=int(train.get("test_months", 1)),
         step_months=int(train.get("step_months", 1)),
-        score_history_days=int(train.get("score_history_days", 120)),
+        score_history_days=_parse_score_history_days(train.get("score_history_days", 120), default=120),
         label_lag_minutes=int(train.get("label_lag_minutes", raw.get("horizon_minutes", 120))),
         model_config_path=Path(paths.get("model_config", "configs/models/lgbm_entry_v0.yaml")),
         labels_path=Path(paths.get("labels", "outputs/valid/labels/btcjpy_1m_labels.parquet")),
@@ -211,6 +245,9 @@ def load_rolling_monthly_config(path: Path | str, *, allow_empty_feature_policie
         save_models=bool(train.get("save_models", False)),
         cache_policy_data=bool(train.get("cache_policy_data", False)),
         log_progress=bool(train.get("log_progress", True)),
+        combine_improving_single_drops=bool((raw.get("family_ablation") or {}).get("combine_improving_single_drops", True)),
+        combined_drop_metric_col=str((raw.get("family_ablation") or {}).get("combined_drop_metric_col", "robust_score")),
+        combined_drop_min_delta_bps=float((raw.get("family_ablation") or {}).get("combined_drop_min_delta_bps", 0.0)),
         feature_policies=tuple(policies),
     )
 
@@ -257,9 +294,17 @@ def _fit_predict_segment(
         train_idx = ts.loc[train_idx].sort_values().index[-int(max_train_rows):]
     eval_mask = (ts >= eval_start) & (ts <= eval_end) & data[target_col].notna()
     eval_idx = eval_mask[eval_mask].index
-    hist_start = eval_start - pd.Timedelta(days=int(score_history_days))
-    history_mask = (ts >= hist_start) & (ts < eval_start)
-    history_idx = history_mask[history_mask].index
+    if int(score_history_days) < 0:
+        # For score_history_quantile/train-quantile monthly research, use the
+        # exact in-sample model fit rows as the score distribution. This means
+        # the threshold is computed from the target month's pre-period train
+        # window, not from an in-period rolling distribution.
+        history_idx = train_idx
+        hist_start = train_start
+    else:
+        hist_start = eval_start - pd.Timedelta(days=int(score_history_days))
+        history_mask = (ts >= hist_start) & (ts < eval_start)
+        history_idx = history_mask[history_mask].index
     if len(train_idx) == 0:
         raise ModelTrainingError(f"{fold_name}: no train rows")
     if len(eval_idx) == 0:
@@ -292,7 +337,7 @@ def _fit_predict_segment(
             "side": side,
             "horizon_minutes": int(horizon_minutes),
             "pred_entry_net_bps": hist_pred,
-            "source": "monthly_pre_fold_score_history",
+            "source": ("monthly_train_insample_score_history" if int(score_history_days) < 0 else "monthly_pre_fold_score_history"),
         })
     else:
         hist_df = pd.DataFrame(columns=["timestamp", "fold", "side", "horizon_minutes", "pred_entry_net_bps", "source"])
@@ -556,6 +601,59 @@ def _progress(run_dir: Path | None, message: str, *, enabled: bool = True, **fie
             pass
 
 
+
+def _parquet_or_csv_columns(path: Path) -> list[str]:
+    path = Path(path)
+    if path.suffix.lower() == ".parquet":
+        try:
+            import pyarrow.parquet as pq
+            return list(pq.ParquetFile(path).schema.names)
+        except Exception:
+            return list(pd.read_parquet(path).columns)
+    return list(pd.read_csv(path, nrows=0).columns)
+
+
+def _read_policy_columns(path: Path, columns: list[str] | None = None) -> pd.DataFrame:
+    path = Path(path)
+    if path.suffix.lower() == ".parquet":
+        return pd.read_parquet(path, columns=columns)
+    if columns is None:
+        return pd.read_csv(path)
+    return pd.read_csv(path, usecols=columns)
+
+
+def _write_combined_drop_policy(
+    *,
+    full_policy: FeaturePolicy,
+    single_drop_policies: list[FeaturePolicy],
+    drop_families: list[str],
+    output_dir: Path,
+    cycle_id: str,
+) -> FeaturePolicy:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    full_cols = _parquet_or_csv_columns(full_policy.features_path)
+    drop_cols: set[str] = set()
+    for policy in single_drop_policies:
+        cols = set(_parquet_or_csv_columns(policy.features_path))
+        drop_cols.update(set(full_cols) - cols)
+    keep_cols = [c for c in full_cols if c not in drop_cols]
+    if "timestamp" not in keep_cols and "timestamp" in full_cols:
+        keep_cols = ["timestamp"] + keep_cols
+    name = f"combined_drop_improvers_{cycle_id}"
+    suffix = full_policy.features_path.suffix or ".parquet"
+    out_path = output_dir / f"{name}{suffix}"
+    if not out_path.exists():
+        df = _read_policy_columns(full_policy.features_path, columns=keep_cols)
+        write_frame(df, out_path)
+        del df
+        gc.collect()
+    return FeaturePolicy(
+        name=name,
+        features_path=out_path,
+        description="combined_drop_improvers; drop=" + ",".join(sorted(drop_families)),
+        drop_families=tuple(sorted(drop_families)),
+    )
+
 @dataclass(frozen=True)
 class MonthlyResearchResult:
     run_dir: Path
@@ -627,6 +725,59 @@ def run_rolling_monthly_research(
         gc.collect()
         _progress(run_dir, "policy_data_released", enabled=config.log_progress, policy=policy.name)
 
+    def evaluate_policy(cycle: MonthlyCycle, policy: FeaturePolicy, *, policy_index: int, policy_count: int) -> tuple[dict[str, Any], dict[str, Any]]:
+        _progress(run_dir, "policy_start", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, policy_index=policy_index, policy_count=policy_count, drop_families=list(policy.drop_families))
+        data, feature_cols = data_for_policy(policy)
+        preds: list[pd.DataFrame] = []
+        hists: list[pd.DataFrame] = []
+        segment_meta: list[dict[str, Any]] = []
+        for valid_name, v_start, v_end in cycle.valid_months:
+            train_end = v_start - pd.Timedelta(minutes=int(config.label_lag_minutes))
+            train_start = v_start - pd.DateOffset(months=int(config.train_months))
+            fold_name = f"{cycle.cycle_id}_{valid_name}_{policy.name}"
+            _progress(run_dir, "segment_fit_start", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, segment=valid_name, train_start=_ensure_utc_timestamp(train_start), train_end=_ensure_utc_timestamp(train_end), eval_start=v_start, eval_end=v_end)
+            pred_df, hist_df, meta = _fit_predict_segment(
+                data=data, feature_cols=feature_cols, target_col=config.target_col, params=params, fold_name=fold_name, side=config.side, horizon_minutes=config.horizon_minutes, train_start=_ensure_utc_timestamp(train_start), train_end=_ensure_utc_timestamp(train_end), eval_start=v_start, eval_end=v_end, score_history_days=config.score_history_days, label_lag_minutes=config.label_lag_minutes, max_train_rows=config.max_train_rows,
+            )
+            preds.append(pred_df)
+            hists.append(hist_df)
+            segment_meta.append(meta)
+            _progress(run_dir, "segment_fit_done", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, segment=valid_name, train_count=meta.get("train_count"), eval_count=meta.get("eval_count"), score_history_count=meta.get("score_history_count"))
+        valid_preds = pd.concat(preds, ignore_index=True)
+        valid_hist = pd.concat(hists, ignore_index=True) if hists else pd.DataFrame()
+        episodes, fold_metrics, summary = _backtest(ohlcv=ohlcv, predictions=valid_preds, score_history=valid_hist, cfg=config)
+        selector_metrics = selector_metrics_from_fold_metrics(
+            pd.DataFrame(fold_metrics),
+            min_total_episode_count=int(config.min_valid_episode_count),
+            min_active_fold_count=int(config.min_active_valid_folds),
+            max_worst_fold_loss_bps=config.max_worst_valid_loss_bps,
+            worst_weight=float(config.robust_worst_weight),
+            median_weight=float(config.robust_median_weight),
+            fail_penalty=float(config.selector_fail_penalty),
+        )
+        score = float(selector_metrics["robust_score"])
+        _progress(run_dir, "policy_backtest_done", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, robust_score=score, raw_score=selector_metrics.get("selector_raw_score"), total_net=selector_metrics.get("selector_total_net_pl_bps"), worst_net=selector_metrics.get("selector_worst_fold_net_pl_bps"), episode_count=selector_metrics.get("selector_total_episode_count"), failed_constraints=selector_metrics.get("selector_failed_constraints"))
+        candidate_row = {
+            "cycle_id": cycle.cycle_id,
+            "policy": policy.name,
+            "drop_families": ",".join(policy.drop_families),
+            "drop_family_count": len(policy.drop_families),
+            "robust_score": score,
+            "selected": False,
+            **selector_metrics,
+            **{k: v for k, v in summary.items() if isinstance(v, (int, float, str, bool)) or v is None},
+        }
+        policy_dir = cycle_dir / "valid_candidates" / policy.name
+        write_episode_report(episodes=episodes, fold_metrics=fold_metrics, summary=summary, output_dir=policy_dir)
+        write_frame(valid_preds, policy_dir / "entry_oof_predictions.parquet")
+        if not valid_hist.empty:
+            write_frame(valid_hist, policy_dir / "score_history.parquet")
+        write_json({"segments": segment_meta, "policy": {"name": policy.name, "features_path": str(policy.features_path), "description": policy.description, "drop_families": list(policy.drop_families)}, "summary": summary, "robust_score": score, "selector_metrics": selector_metrics}, policy_dir / "candidate_run.json")
+        release_policy_data(policy, data, feature_cols)
+        del data, feature_cols, valid_preds, valid_hist, preds, hists
+        gc.collect()
+        return candidate_row, summary
+
     for cycle_index, cycle in enumerate(cycles, start=1):
         _progress(run_dir, "cycle_start", enabled=config.log_progress, cycle=cycle.cycle_id, cycle_index=cycle_index, cycle_count=len(cycles), test_start=cycle.test_start, test_end=cycle.test_end)
         cycle_dir = run_dir / cycle.cycle_id
@@ -634,73 +785,61 @@ def run_rolling_monthly_research(
         best_policy: FeaturePolicy | None = None
         best_score = -np.inf
         best_valid_summary: dict[str, Any] | None = None
+        cycle_candidate_rows: list[dict[str, Any]] = []
+        policy_lookup = {p.name: p for p in config.feature_policies}
+        full_policy = next((p for p in config.feature_policies if not p.drop_families), config.feature_policies[0] if config.feature_policies else None)
         for policy_index, policy in enumerate(config.feature_policies, start=1):
-            _progress(run_dir, "policy_start", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, policy_index=policy_index, policy_count=len(config.feature_policies))
-            data, feature_cols = data_for_policy(policy)
-            preds: list[pd.DataFrame] = []
-            hists: list[pd.DataFrame] = []
-            segment_meta: list[dict[str, Any]] = []
-            for valid_name, v_start, v_end in cycle.valid_months:
-                train_end = v_start - pd.Timedelta(minutes=int(config.label_lag_minutes))
-                train_start = v_start - pd.DateOffset(months=int(config.train_months))
-                fold_name = f"{cycle.cycle_id}_{valid_name}_{policy.name}"
-                _progress(run_dir, "segment_fit_start", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, segment=valid_name, train_start=_ensure_utc_timestamp(train_start), train_end=_ensure_utc_timestamp(train_end), eval_start=v_start, eval_end=v_end)
-                pred_df, hist_df, meta = _fit_predict_segment(
-                    data=data,
-                    feature_cols=feature_cols,
-                    target_col=config.target_col,
-                    params=params,
-                    fold_name=fold_name,
-                    side=config.side,
-                    horizon_minutes=config.horizon_minutes,
-                    train_start=_ensure_utc_timestamp(train_start),
-                    train_end=_ensure_utc_timestamp(train_end),
-                    eval_start=v_start,
-                    eval_end=v_end,
-                    score_history_days=config.score_history_days,
-                    label_lag_minutes=config.label_lag_minutes,
-                    max_train_rows=config.max_train_rows,
-                )
-                preds.append(pred_df)
-                hists.append(hist_df)
-                segment_meta.append(meta)
-                _progress(run_dir, "segment_fit_done", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, segment=valid_name, train_count=meta.get("train_count"), eval_count=meta.get("eval_count"), score_history_count=meta.get("score_history_count"))
-            valid_preds = pd.concat(preds, ignore_index=True)
-            valid_hist = pd.concat(hists, ignore_index=True) if hists else pd.DataFrame()
-            episodes, fold_metrics, summary = _backtest(ohlcv=ohlcv, predictions=valid_preds, score_history=valid_hist, cfg=config)
-            selector_metrics = selector_metrics_from_fold_metrics(
-                pd.DataFrame(fold_metrics),
-                min_total_episode_count=int(config.min_valid_episode_count),
-                min_active_fold_count=int(config.min_active_valid_folds),
-                max_worst_fold_loss_bps=config.max_worst_valid_loss_bps,
-                worst_weight=float(config.robust_worst_weight),
-                median_weight=float(config.robust_median_weight),
-                fail_penalty=float(config.selector_fail_penalty),
-            )
-            score = float(selector_metrics["robust_score"])
-            _progress(run_dir, "policy_backtest_done", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, robust_score=score, raw_score=selector_metrics.get("selector_raw_score"), total_net=selector_metrics.get("selector_total_net_pl_bps"), worst_net=selector_metrics.get("selector_worst_fold_net_pl_bps"), episode_count=selector_metrics.get("selector_total_episode_count"), failed_constraints=selector_metrics.get("selector_failed_constraints"))
-            candidate_row = {
-                "cycle_id": cycle.cycle_id,
-                "policy": policy.name,
-                "robust_score": score,
-                "selected": False,
-                **selector_metrics,
-                **{k: v for k, v in summary.items() if isinstance(v, (int, float, str, bool)) or v is None},
-            }
+            candidate_row, summary = evaluate_policy(cycle, policy, policy_index=policy_index, policy_count=len(config.feature_policies))
             candidate_rows.append(candidate_row)
-            policy_dir = cycle_dir / "valid_candidates" / policy.name
-            write_episode_report(episodes=episodes, fold_metrics=fold_metrics, summary=summary, output_dir=policy_dir)
-            write_frame(valid_preds, policy_dir / "entry_oof_predictions.parquet")
-            if not valid_hist.empty:
-                write_frame(valid_hist, policy_dir / "score_history.parquet")
-            write_json({"segments": segment_meta, "policy": policy.__dict__, "summary": summary, "robust_score": score}, policy_dir / "candidate_run.json")
+            cycle_candidate_rows.append(candidate_row)
+            score = float(candidate_row["robust_score"])
             if score > best_score:
                 best_score = score
                 best_policy = policy
                 best_valid_summary = summary
-            release_policy_data(policy, data, feature_cols)
-            del data, feature_cols
-            gc.collect()
+
+        # Optional second-stage candidate: drop every single-family policy that
+        # improved over the full policy under the current entry rule. This is
+        # intentionally evaluated as a real policy instead of inferring P/L from
+        # single-drop results.
+        if config.combine_improving_single_drops and full_policy is not None:
+            metric_col = config.combined_drop_metric_col
+            full_rows = [r for r in cycle_candidate_rows if r.get("policy") == full_policy.name]
+            if full_rows and metric_col in full_rows[0]:
+                full_metric = float(full_rows[0].get(metric_col) or -np.inf)
+                improving: list[tuple[str, str]] = []
+                for row in cycle_candidate_rows:
+                    drop_fams = _parse_list_like(row.get("drop_families"))
+                    if len(drop_fams) != 1:
+                        continue
+                    value = row.get(metric_col)
+                    try:
+                        metric = float(value)
+                    except Exception:
+                        continue
+                    if metric > full_metric + float(config.combined_drop_min_delta_bps):
+                        improving.append((drop_fams[0], str(row.get("policy"))))
+                if improving:
+                    improving_families = sorted({f for f, _ in improving})
+                    single_policies = [policy_lookup[name] for _, name in improving if name in policy_lookup]
+                    if single_policies:
+                        _progress(run_dir, "combined_drop_start", enabled=config.log_progress, cycle=cycle.cycle_id, metric_col=metric_col, full_metric=full_metric, improving_families=improving_families)
+                        combined_policy = _write_combined_drop_policy(
+                            full_policy=full_policy,
+                            single_drop_policies=single_policies,
+                            drop_families=improving_families,
+                            output_dir=cycle_dir / "combined_family_policies",
+                            cycle_id=cycle.cycle_id,
+                        )
+                        candidate_row, summary = evaluate_policy(cycle, combined_policy, policy_index=len(config.feature_policies) + 1, policy_count=len(config.feature_policies) + 1)
+                        candidate_rows.append(candidate_row)
+                        cycle_candidate_rows.append(candidate_row)
+                        score = float(candidate_row["robust_score"])
+                        if score > best_score:
+                            best_score = score
+                            best_policy = combined_policy
+                            best_valid_summary = summary
+                        _progress(run_dir, "combined_drop_done", enabled=config.log_progress, cycle=cycle.cycle_id, policy=combined_policy.name, robust_score=score, drop_family_count=len(combined_policy.drop_families))
         assert best_policy is not None
         for row in candidate_rows:
             if row["cycle_id"] == cycle.cycle_id and row["policy"] == best_policy.name:

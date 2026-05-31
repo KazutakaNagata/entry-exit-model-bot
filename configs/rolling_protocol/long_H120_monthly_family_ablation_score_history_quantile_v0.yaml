@@ -17,9 +17,9 @@ training:
   test_months: 1
   step_months: 1
   label_lag_minutes: 180
-  # Used as the pre-period score buffer for score_history_quantile.
-  # This is intentionally not an in-period rolling threshold.
-  score_history_days: 120
+  # For score_history_quantile, use the actual 9-month training rows as the score distribution.
+  # This is not an in-period rolling threshold.
+  score_history_days: train
   max_train_rows: null
   force_col_wise: true
   downcast_float32: true
@@ -51,6 +51,12 @@ family_ablation:
   policy_output_dir: data/processed/binance_japan/BTCJPY/1m/family_policies/long_H120_monthly_v0
   output_format: parquet
   overwrite_policies: false
+  # After evaluating full and every single-family drop, also evaluate one
+  # combined candidate that drops every single-family policy that improved
+  # over full under the current entry rule.
+  combine_improving_single_drops: true
+  combined_drop_metric_col: robust_score
+  combined_drop_min_delta_bps: 0.0
   families: null
   exclude_families: null
 

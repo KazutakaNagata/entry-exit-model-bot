@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import ast
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,29 @@ from swing_bot.research.monthly_rolling import load_rolling_monthly_config, run_
 DEFAULT_CONFIG = Path("configs/rolling_protocol/long_H120_monthly_family_ablation_v0.yaml")
 DEFAULT_OUTPUT_ROOT = outputs_dir() / "valid" / "rolling_monthly_research"
 
+
+
+def _parse_drop_families(value):
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return []
+    if isinstance(value, list):
+        return [str(v) for v in value]
+    text = str(value).strip()
+    if not text:
+        return []
+    try:
+        parsed = json.loads(text.replace("'", '"'))
+        if isinstance(parsed, list):
+            return [str(v) for v in parsed]
+    except Exception:
+        pass
+    try:
+        parsed = ast.literal_eval(text)
+        if isinstance(parsed, (list, tuple)):
+            return [str(v) for v in parsed]
+    except Exception:
+        pass
+    return [v.strip() for v in text.split(',') if v.strip()]
 
 def _split_csv(value: str | None) -> list[str] | None:
     if value is None or str(value).strip() == "":
@@ -86,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
                 "name": str(row["name"]),
                 "features": str(row["features_path"]),
                 "description": str(row.get("description", "")),
+                "drop_families": _parse_drop_families(row.get("drop_families")),
             })
     else:
         policies, manifest_df = build_leave_one_family_out_policies(
@@ -99,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
             overwrite=bool(args.overwrite_policies or fam_cfg.get("overwrite_policies", False)),
         )
         feature_policy_rows = [
-            {"name": p.name, "features": str(p.features_path), "description": p.description}
+            {"name": p.name, "features": str(p.features_path), "description": p.description, "drop_families": list(p.drop_families)}
             for p in policies
         ]
     generated = dict(raw)
