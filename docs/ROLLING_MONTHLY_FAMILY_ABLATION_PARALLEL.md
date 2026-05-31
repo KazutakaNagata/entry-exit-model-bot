@@ -112,3 +112,17 @@ aggregate_summary.json
 ## Test discipline
 
 This workflow uses each monthly test only once per fixed selector process. Do not inspect one test month, change selector logic, then claim the same batch remains out-of-sample.
+
+## Memory/logging note
+
+Monthly family-ablation runs now stream candidate policy matrices one at a time by default.  They no longer keep all candidate feature matrices in a Python cache.  Progress is written both to stdout and to:
+
+```text
+outputs/valid/rolling_monthly_research/<run_id>/progress.log
+```
+
+When launched through the prepared job scripts, those progress lines also appear in:
+
+```text
+outputs/valid/rolling_monthly_family_ablation_jobs/<batch>/logs/test_YYYYMM.log
+```

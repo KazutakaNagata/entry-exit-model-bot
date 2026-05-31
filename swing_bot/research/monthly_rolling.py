@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 import gc
+import datetime as _dt
 
 import numpy as np
 import pandas as pd
@@ -81,6 +82,8 @@ class RollingMonthlyConfig:
     force_col_wise: bool = True
     downcast_float32: bool = True
     save_models: bool = False
+    cache_policy_data: bool = False
+    log_progress: bool = True
 
     @property
     def target_col(self) -> str:
@@ -206,6 +209,8 @@ def load_rolling_monthly_config(path: Path | str, *, allow_empty_feature_policie
         force_col_wise=bool(train.get("force_col_wise", True)),
         downcast_float32=bool(train.get("downcast_float32", True)),
         save_models=bool(train.get("save_models", False)),
+        cache_policy_data=bool(train.get("cache_policy_data", False)),
+        log_progress=bool(train.get("log_progress", True)),
         feature_policies=tuple(policies),
     )
 
@@ -513,6 +518,44 @@ def robust_selector_score(
     return float(metrics["robust_score"])
 
 
+
+def _rss_mb() -> float | None:
+    """Best-effort resident set size in MB for progress logs."""
+    try:
+        import resource
+
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        # macOS reports bytes; Linux reports kilobytes.
+        if rss > 10_000_000:
+            return float(rss) / (1024.0 * 1024.0)
+        return float(rss) / 1024.0
+    except Exception:
+        return None
+
+
+def _progress(run_dir: Path | None, message: str, *, enabled: bool = True, **fields: Any) -> None:
+    if not enabled:
+        return
+    payload: dict[str, Any] = {
+        "ts": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+        "message": message,
+    }
+    rss = _rss_mb()
+    if rss is not None:
+        payload["rss_mb"] = round(rss, 1)
+    payload.update(fields)
+    line = json.dumps(payload, ensure_ascii=False, default=str)
+    print(f"[monthly_rolling] {line}", flush=True)
+    if run_dir is not None:
+        try:
+            run_dir.mkdir(parents=True, exist_ok=True)
+            with (run_dir / "progress.jsonl").open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except Exception:
+            # Progress logging must never break research runs.
+            pass
+
+
 @dataclass(frozen=True)
 class MonthlyResearchResult:
     run_dir: Path
@@ -533,6 +576,7 @@ def run_rolling_monthly_research(
     output_root.mkdir(parents=True, exist_ok=True)
     run_dir = output_root / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
+    _progress(run_dir, "run_start", enabled=config.log_progress, run_id=run_id, cache_policy_data=config.cache_policy_data, policy_count=len(config.feature_policies))
     cycles = build_monthly_cycles(
         first_test_month=first_test_month,
         last_test_month=last_test_month,
@@ -556,25 +600,42 @@ def run_rolling_monthly_research(
     cached_data: dict[str, tuple[pd.DataFrame, list[str]]] = {}
 
     def data_for_policy(policy: FeaturePolicy) -> tuple[pd.DataFrame, list[str]]:
-        if policy.name in cached_data:
+        if config.cache_policy_data and policy.name in cached_data:
+            _progress(run_dir, "policy_data_cache_hit", enabled=config.log_progress, policy=policy.name)
             return cached_data[policy.name]
+        _progress(run_dir, "policy_data_load_start", enabled=config.log_progress, policy=policy.name, features=str(policy.features_path))
         features = pd.read_parquet(policy.features_path) if str(policy.features_path).endswith(".parquet") else pd.read_csv(policy.features_path)
         data = merge_features_and_labels(features, labels, target_col=config.target_col)
+        del features
         data["timestamp"] = pd.to_datetime(data["timestamp"], utc=True)
         feature_cols = numeric_feature_columns(data, exclude={config.target_col})
         assert_no_forbidden_feature_columns(feature_cols)
         if config.downcast_float32:
             data = _downcast(data, feature_cols, config.target_col)
-        cached_data[policy.name] = (data, feature_cols)
+        _progress(run_dir, "policy_data_load_done", enabled=config.log_progress, policy=policy.name, rows=len(data), feature_count=len(feature_cols))
+        if config.cache_policy_data:
+            cached_data[policy.name] = (data, feature_cols)
         return data, feature_cols
 
-    for cycle in cycles:
+    def release_policy_data(policy: FeaturePolicy, data: pd.DataFrame | None = None, feature_cols: list[str] | None = None) -> None:
+        if config.cache_policy_data:
+            return
+        if data is not None:
+            del data
+        if feature_cols is not None:
+            del feature_cols
+        gc.collect()
+        _progress(run_dir, "policy_data_released", enabled=config.log_progress, policy=policy.name)
+
+    for cycle_index, cycle in enumerate(cycles, start=1):
+        _progress(run_dir, "cycle_start", enabled=config.log_progress, cycle=cycle.cycle_id, cycle_index=cycle_index, cycle_count=len(cycles), test_start=cycle.test_start, test_end=cycle.test_end)
         cycle_dir = run_dir / cycle.cycle_id
         cycle_dir.mkdir(parents=True, exist_ok=True)
         best_policy: FeaturePolicy | None = None
         best_score = -np.inf
         best_valid_summary: dict[str, Any] | None = None
-        for policy in config.feature_policies:
+        for policy_index, policy in enumerate(config.feature_policies, start=1):
+            _progress(run_dir, "policy_start", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, policy_index=policy_index, policy_count=len(config.feature_policies))
             data, feature_cols = data_for_policy(policy)
             preds: list[pd.DataFrame] = []
             hists: list[pd.DataFrame] = []
@@ -583,6 +644,7 @@ def run_rolling_monthly_research(
                 train_end = v_start - pd.Timedelta(minutes=int(config.label_lag_minutes))
                 train_start = v_start - pd.DateOffset(months=int(config.train_months))
                 fold_name = f"{cycle.cycle_id}_{valid_name}_{policy.name}"
+                _progress(run_dir, "segment_fit_start", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, segment=valid_name, train_start=_ensure_utc_timestamp(train_start), train_end=_ensure_utc_timestamp(train_end), eval_start=v_start, eval_end=v_end)
                 pred_df, hist_df, meta = _fit_predict_segment(
                     data=data,
                     feature_cols=feature_cols,
@@ -602,6 +664,7 @@ def run_rolling_monthly_research(
                 preds.append(pred_df)
                 hists.append(hist_df)
                 segment_meta.append(meta)
+                _progress(run_dir, "segment_fit_done", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, segment=valid_name, train_count=meta.get("train_count"), eval_count=meta.get("eval_count"), score_history_count=meta.get("score_history_count"))
             valid_preds = pd.concat(preds, ignore_index=True)
             valid_hist = pd.concat(hists, ignore_index=True) if hists else pd.DataFrame()
             episodes, fold_metrics, summary = _backtest(ohlcv=ohlcv, predictions=valid_preds, score_history=valid_hist, cfg=config)
@@ -615,6 +678,7 @@ def run_rolling_monthly_research(
                 fail_penalty=float(config.selector_fail_penalty),
             )
             score = float(selector_metrics["robust_score"])
+            _progress(run_dir, "policy_backtest_done", enabled=config.log_progress, cycle=cycle.cycle_id, policy=policy.name, robust_score=score, raw_score=selector_metrics.get("selector_raw_score"), total_net=selector_metrics.get("selector_total_net_pl_bps"), worst_net=selector_metrics.get("selector_worst_fold_net_pl_bps"), episode_count=selector_metrics.get("selector_total_episode_count"), failed_constraints=selector_metrics.get("selector_failed_constraints"))
             candidate_row = {
                 "cycle_id": cycle.cycle_id,
                 "policy": policy.name,
@@ -634,15 +698,20 @@ def run_rolling_monthly_research(
                 best_score = score
                 best_policy = policy
                 best_valid_summary = summary
+            release_policy_data(policy, data, feature_cols)
+            del data, feature_cols
+            gc.collect()
         assert best_policy is not None
         for row in candidate_rows:
             if row["cycle_id"] == cycle.cycle_id and row["policy"] == best_policy.name:
                 row["selected"] = True
+        _progress(run_dir, "cycle_selected_policy", enabled=config.log_progress, cycle=cycle.cycle_id, selected_policy=best_policy.name, valid_robust_score=best_score)
         # Train selected policy for the rolling test month.
         data, feature_cols = data_for_policy(best_policy)
         test_train_end = cycle.test_start - pd.Timedelta(minutes=int(config.label_lag_minutes))
         test_train_start = cycle.test_start - pd.DateOffset(months=int(config.train_months))
         test_fold = f"{cycle.cycle_id}_test_{best_policy.name}"
+        _progress(run_dir, "test_fit_start", enabled=config.log_progress, cycle=cycle.cycle_id, policy=best_policy.name, train_start=_ensure_utc_timestamp(test_train_start), train_end=_ensure_utc_timestamp(test_train_end), eval_start=cycle.test_start, eval_end=cycle.test_end)
         pred_df, hist_df, test_meta = _fit_predict_segment(
             data=data,
             feature_cols=feature_cols,
@@ -674,6 +743,7 @@ def run_rolling_monthly_research(
             **{f"test_{k}": v for k, v in test_summary.items() if isinstance(v, (int, float, str, bool)) or v is None},
         }
         test_rows.append(test_row)
+        _progress(run_dir, "test_backtest_done", enabled=config.log_progress, cycle=cycle.cycle_id, selected_policy=best_policy.name, test_episode_count=test_summary.get("episode_count"), test_mean_net=test_summary.get("mean_net_pl_bps_sum"), test_worst_net=test_summary.get("worst_net_pl_bps_sum"))
         cycle_rows.append({
             "cycle_id": cycle.cycle_id,
             "test_start": cycle.test_start.isoformat(),
@@ -688,6 +758,9 @@ def run_rolling_monthly_research(
             "train_end": test_meta["train_end"],
         })
         write_json({"cycle": cycle_rows[-1], "selected_policy": best_policy.__dict__, "test_segment": test_meta}, cycle_dir / "cycle_summary.json")
+        release_policy_data(best_policy, data, feature_cols)
+        del data, feature_cols
+        gc.collect()
     candidates_df = pd.DataFrame(candidate_rows)
     cycles_df = pd.DataFrame(cycle_rows)
     tests_df = pd.DataFrame(test_rows)
@@ -715,4 +788,5 @@ def run_rolling_monthly_research(
         },
         run_dir / "run_config.json",
     )
+    _progress(run_dir, "run_done", enabled=config.log_progress, run_id=run_id, cycle_count=len(cycles), candidate_rows=len(candidates_df), test_rows=len(tests_df))
     return MonthlyResearchResult(run_dir=run_dir, cycles_csv=cycles_path, candidate_csv=candidate_path, test_metrics_csv=test_path)
