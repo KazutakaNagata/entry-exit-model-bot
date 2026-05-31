@@ -1,0 +1,49 @@
+feature_set_name: entry_feature_set_v4_timeframe
+purpose: "Feature factory v4: v3b full universe plus human-watched anchored timeframe candles, indicators, and phase features. Exploration universe only."
+
+include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - fractal_structure
+  - pivot_line
+  - compressed_price_geometry
+  - compressed_breakout
+  - anchored_timeframe_candle
+  - anchored_timeframe_indicators
+  - timeframe_phase
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+notes:
+  - "Anchored timeframe features use fully closed 5m/15m/60m/240m candles; currently forming higher-timeframe candles are not used."
+  - "timeframe_phase encodes modulo calendar position such as minute within 5m/15m/60m/240m bars."
+  - "This is an exploration universe, not a locked production feature set."

@@ -36,6 +36,11 @@ from swing_bot.features.families.trend_persistence import build_trend_persistenc
 from swing_bot.features.families.volume import build_volume_features
 from swing_bot.features.families.volume_price_pressure import build_volume_price_pressure_features
 from swing_bot.features.families.volatility import build_volatility_features
+
+from swing_bot.features.families.anchored_timeframe_candle import build_anchored_timeframe_candle_features
+from swing_bot.features.families.anchored_timeframe_indicators import build_anchored_timeframe_indicator_features
+from swing_bot.features.families.timeframe_phase import build_timeframe_phase_features
+
 from swing_bot.features.manifest import FeatureSpec
 
 FeatureBuilder = Callable[[pd.DataFrame], tuple[pd.DataFrame, list[FeatureSpec]]]
@@ -67,6 +72,9 @@ FEATURE_BUILDERS: dict[str, FeatureBuilder] = {
     "volume_price_pressure": build_volume_price_pressure_features,
     "rejection_reversal": build_rejection_reversal_features,
     "pullback_geometry": build_pullback_geometry_features,
+    "anchored_timeframe_candle": build_anchored_timeframe_candle_features,
+    "anchored_timeframe_indicators": build_anchored_timeframe_indicator_features,
+    "timeframe_phase": build_timeframe_phase_features,
 }
 
 

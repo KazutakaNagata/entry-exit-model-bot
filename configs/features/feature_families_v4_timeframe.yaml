@@ -1,0 +1,17 @@
+feature_families_v4_timeframe:
+  added_in_v4:
+    anchored_timeframe_candle:
+      role: "human-watched candle/level context"
+      intent: "Closed 1m/5m/15m/60m/240m candle body/range/wick/close-position plus previous anchored high/low levels."
+      leakage_rule: "Higher timeframe bars are aligned by close_time <= current 1m timestamp; currently forming higher-timeframe candles are not used."
+    anchored_timeframe_indicators:
+      role: "human-watched technical indicators"
+      intent: "EMA, ATR, RSI, Bollinger Band, and MACD on closed anchored timeframes."
+      leakage_rule: "Indicators are computed on closed anchored candles then as-of aligned to current 1m rows."
+    timeframe_phase:
+      role: "calendar / bar phase"
+      intent: "Minute within 5m/15m/60m/240m intervals, including sin/cos encodings and first/last-minute flags."
+      leakage_rule: "Calendar-only modulo features; no price future data."
+notes:
+  - "These families are intended to test whether human-watched chart structures add information beyond rolling-window features."
+  - "Offset/phase-shifted candle families are intentionally left for a later experiment; this version includes anchored standard timeframes and phase features only."

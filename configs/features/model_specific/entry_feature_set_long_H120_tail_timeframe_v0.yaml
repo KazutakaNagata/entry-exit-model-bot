@@ -1,0 +1,45 @@
+feature_set_name: entry_feature_set_long_H120_tail_timeframe_v0
+purpose: "Long_H120 tail candidate plus human-watched anchored timeframe candles, indicators, and phase features. Use for fixed-train/valid-only feature-power checks before monthly protocol integration."
+side: long
+horizon_minutes: 120
+base_feature_set: entry_feature_set_long_H120_tail_v0
+
+include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - compressed_price_geometry
+  - anchored_timeframe_candle
+  - anchored_timeframe_indicators
+  - timeframe_phase
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+notes:
+  - "Keeps the previous long_H120 tail family list and adds human-watched anchored-timeframe context."
+  - "Does not re-add compressed_activity."
+  - "Evaluate on valid only; do not touch test while iterating."
