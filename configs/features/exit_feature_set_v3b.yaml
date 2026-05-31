@@ -1,0 +1,44 @@
+feature_set_name: exit_feature_set_v3b
+purpose: "Exit-market feature universe matching v3b structure families. Use only after regenerating OOF entry and exit datasets."
+
+market_feature_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - fractal_structure
+  - pivot_line
+  - compressed_price_geometry
+  - compressed_breakout
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+notes:
+  - "This is not an exit-selected feature set. It mirrors v3b market features for later exit dataset regeneration."

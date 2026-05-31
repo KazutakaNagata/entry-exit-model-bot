@@ -1,0 +1,24 @@
+label_name: exit_hold_delta_v0
+model_role: exit
+kind: regression
+
+execution:
+  decision_after_bar_close: true
+  current_exit_price: next_open
+  future_exit_price: next_open_after_lookahead
+
+lookaheads_minutes:
+  long:
+    - 30
+    - 60
+  short:
+    - 15
+    - 30
+
+formula:
+  generic: "side * log(open[t+1+K] / open[t+1]) * 10000"
+
+notes:
+  - "This is the simplest hold_delta definition."
+  - "Fixed roundtrip cost mostly cancels when comparing current exit vs future exit."
+  - "Do not require an extra 15bps for every hold decision."

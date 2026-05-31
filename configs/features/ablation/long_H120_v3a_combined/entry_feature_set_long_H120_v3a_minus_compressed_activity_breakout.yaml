@@ -1,0 +1,45 @@
+feature_set_name: entry_feature_set_long_H120_v3a_minus_compressed_activity_breakout
+purpose: 'long_H120 v3a combined family ablation: Tests whether long_H120 prefers
+  regime continuation without immediate breakout trigger features.'
+base_feature_set: entry_feature_set_v3a
+side: long
+horizon_minutes: 120
+dropped_families:
+- compressed_activity
+- breakout
+include_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+- volume_price_pressure
+- rejection_reversal
+- acceleration
+- trend_regime
+- regime_switch
+- micro_range
+- volume_spike
+- compressed_trend
+- compressed_volatility
+exclude_patterns:
+- target_*
+- future_*
+- '*_label*'
+- '*label*'
+- '*_y'
+- '*hold_delta*'
+- '*mfe*'
+- '*mae*'
+- diag_*
+notes:
+- This config is for valid-fold combined ablation only, not production adoption.
+- It follows the first long_H120 v3a leave-one-family-out ablation.
+- 'Primary question: do compressed_activity, rejection_reversal, and breakout hurt
+  additively?'
+- No test data should be read while evaluating this config.
+- Every included family must remain deterministic and past-only; audit_features.py
+  --strict should pass.

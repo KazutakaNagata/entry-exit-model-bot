@@ -1,0 +1,14 @@
+# Default trading cost assumptions.
+# These are research assumptions, not exchange facts.
+
+cost_profile: default_btcjpy_v0
+roundtrip_cost_bps: 15.0
+
+# Optional decomposition for documentation only.
+entry_cost_bps: 7.5
+exit_cost_bps: 7.5
+
+notes:
+  - "roundtrip_cost_bps should include fee, spread, and slippage buffer."
+  - "Entry targets subtract the full roundtrip cost."
+  - "Exit hold_delta targets usually compare hold vs exit, so fixed costs mostly cancel."

@@ -1,0 +1,45 @@
+feature_set_name: entry_feature_set_long_H120_hypothesis_core
+purpose: 'long_H120 v3a family ablation: Domain-hypothesis long_H120 core: trend/regime,
+  pullback, room, volatility state; excludes full pressure/rejection/breakout/spike/acceleration
+  noise candidates.'
+base_feature_set: entry_feature_set_v3a
+side: long
+horizon_minutes: 120
+dropped_families:
+- breakout
+- volume_price_pressure
+- rejection_reversal
+- acceleration
+- volume_spike
+- compressed_activity
+include_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+- trend_regime
+- regime_switch
+- micro_range
+- compressed_trend
+- compressed_volatility
+exclude_patterns:
+- target_*
+- future_*
+- '*_label*'
+- '*label*'
+- '*_y'
+- '*hold_delta*'
+- '*mfe*'
+- '*mae*'
+- diag_*
+notes:
+- This config is for valid-fold ablation only, not production adoption.
+- It is designed for long_H120 after v3a improved q95/q97/q99 metrics.
+- Compare against v3a_full with worst-fold metrics emphasized over mean-only gains.
+- No test data should be read while evaluating this config.
+- Every included family must remain deterministic and past-only; audit_features.py
+  --strict should pass.

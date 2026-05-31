@@ -1,0 +1,53 @@
+feature_families_v3b:
+  inherited_from_v3a:
+    - price
+    - return_path
+    - volatility
+    - trend_persistence
+    - volume
+    - support_resistance
+    - market_structure_void
+    - pullback_geometry
+    - breakout
+    - volume_price_pressure
+    - rejection_reversal
+    - acceleration
+    - trend_regime
+    - regime_switch
+    - micro_range
+    - volume_spike
+    - compressed_trend
+    - compressed_activity
+    - compressed_volatility
+  added_in_v3b:
+    enhanced_support_resistance:
+      role: "structure / room"
+      intent: "Longer-horizon support/resistance distances, failed pierces, room ratios, and structural range position."
+      leakage_rule: "Structural levels use high.shift(1).rolling(...) and low.shift(1).rolling(...); current finalized bar is only compared to prior levels."
+    enhanced_market_structure_void:
+      role: "room / structure asymmetry"
+      intent: "Upside/downside room normalized by range/ATR, room asymmetry, and post-break room proxies."
+      leakage_rule: "Previous extrema are shifted; all normalization uses rolling windows ending at t."
+    enhanced_pullback_geometry:
+      role: "pullback quality"
+      intent: "Shallow pullback, recovery ratio, MA reclaim, and vol-normalized bounce/drawdown features for long_H120 continuation."
+      leakage_rule: "Rolling high/low/mean/volatility windows end at t; no centered windows."
+    fractal_structure:
+      role: "structural progression"
+      intent: "Higher-high / higher-low proxies using recent half-window versus prior half-window structure."
+      leakage_rule: "Uses only current and past finalized bars; prior half-window is shifted."
+    pivot_line:
+      role: "price level geometry"
+      intent: "Previous rolling pivot/R1/S1/R2/S2 distance features."
+      leakage_rule: "Pivot levels use previous rolling high/low and close.shift(1)."
+    compressed_price_geometry:
+      role: "compressed structure"
+      intent: "Deterministic summaries of range position, upside room, pullback depth, and structure size across windows."
+      leakage_rule: "No fitted compressor; all windows are deterministic and past-only."
+    compressed_breakout:
+      role: "compressed trigger / structure"
+      intent: "Deterministic cross-window breakout summaries, failed-breakout summaries, and volume-confirmed breakout score."
+      leakage_rule: "Breakout levels are previous rolling highs/lows; current bar only evaluates relation to prior levels."
+notes:
+  - "v3b is the structure-family expansion before exit modeling."
+  - "For long_H120, prefer model_specific/entry_feature_set_long_H120_v3b_candidate.yaml over the full v3b universe."

@@ -1,0 +1,25 @@
+policy_name: episode_policy_v0
+
+costs:
+  roundtrip_cost_bps: 15.0
+
+entry:
+  threshold_net_bps: null  # tune on valid only
+  decision_frequency_minutes: 5
+
+exit:
+  hold_threshold_bps: null  # tune on valid only
+  exit_confirm_bars: 2
+  decision_frequency_minutes: 5
+
+risk_controls:
+  max_hold_minutes: 240
+  hard_stop_bps: null
+  cooldown_after_exit_minutes: 10
+  same_side_reentry_block_minutes: 10
+  max_round_trips_per_day: null
+
+rules:
+  - "Policy thresholds are selected on valid folds only."
+  - "Test audit must use locked thresholds."
+  - "Roundtrip cost is charged once per episode in backtest."

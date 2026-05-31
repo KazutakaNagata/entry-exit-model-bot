@@ -1,0 +1,47 @@
+feature_set_name: entry_feature_set_long_H120_base_plus_fractal_structure
+purpose: 'long_H120 v3b family addition: Adds deterministic past-only high/low structure
+  proxies; expected to be noisy until proven useful.'
+base_feature_set: entry_feature_set_long_H120_v3a_minus_compressed_activity
+side: long
+horizon_minutes: 120
+baseline_family_policy: v3a_minus_compressed_activity
+added_families:
+- fractal_structure
+include_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+- breakout
+- volume_price_pressure
+- rejection_reversal
+- acceleration
+- trend_regime
+- regime_switch
+- micro_range
+- volume_spike
+- compressed_trend
+- compressed_volatility
+- fractal_structure
+exclude_patterns:
+- target_*
+- future_*
+- '*_label*'
+- '*label*'
+- '*_y'
+- '*hold_delta*'
+- '*mfe*'
+- '*mae*'
+- diag_*
+notes:
+- Valid-fold addition experiment only; not a production feature set by itself.
+- Base is long_H120 v3a minus compressed_activity, the current strongest candidate.
+- 'Purpose: isolate which v3b structure families help or hurt before building exit
+  datasets.'
+- No test data should be read while evaluating this config.
+- Every included family must remain deterministic and past-only; audit_features.py
+  --strict should pass.

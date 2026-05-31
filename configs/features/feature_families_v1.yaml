@@ -1,0 +1,20 @@
+feature_families_v1:
+  inherited_from_v0:
+    - price
+    - return_path
+    - volatility
+    - trend_persistence
+    - volume
+  added_in_v1:
+    support_resistance:
+      intent: "Distances to recent support/resistance and current close versus previous rolling levels."
+      leakage_rule: "Breakout features use high.shift(1)/low.shift(1) rolling levels; no future bars."
+    market_structure_void:
+      intent: "Simple room-to-extreme and extreme-age geometry proxies for upside/downside room."
+      leakage_rule: "Previous extreme features exclude current bar; bars-since features use only the rolling window ending at t."
+    pullback_geometry:
+      intent: "Drawdown/recovery position inside recent high-low windows."
+      leakage_rule: "Rolling extrema include only finalized bars at or before t."
+notes:
+  - "v1 is a migration scaffold, not the final old-research feature set."
+  - "Family ablation and compression come after this pipeline is confirmed end-to-end."

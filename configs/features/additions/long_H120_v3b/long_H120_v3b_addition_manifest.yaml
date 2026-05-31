@@ -1,0 +1,378 @@
+experiment_name: long_H120_v3b_family_addition
+baseline_variant: base_v0
+side: long
+horizon_minutes: 120
+base_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+- breakout
+- volume_price_pressure
+- rejection_reversal
+- acceleration
+- trend_regime
+- regime_switch
+- micro_range
+- volume_spike
+- compressed_trend
+- compressed_volatility
+v3b_structure_families:
+- enhanced_support_resistance
+- enhanced_market_structure_void
+- enhanced_pullback_geometry
+- fractal_structure
+- pivot_line
+- compressed_price_geometry
+- compressed_breakout
+configs:
+- name: base_v0
+  config: entry_feature_set_long_H120_base_v0.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  added_families: []
+  description: 'Current long_H120 base: v3a minus compressed_activity; no v3b structure
+    families added.'
+  feature_count_expected: null
+- name: base_plus_enhanced_support_resistance
+  config: entry_feature_set_long_H120_base_plus_enhanced_support_resistance.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - enhanced_support_resistance
+  added_families:
+  - enhanced_support_resistance
+  description: Adds stronger support/resistance distance and range-position structure.
+  feature_count_expected: null
+- name: base_plus_enhanced_market_structure_void
+  config: entry_feature_set_long_H120_base_plus_enhanced_market_structure_void.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - enhanced_market_structure_void
+  added_families:
+  - enhanced_market_structure_void
+  description: Adds upside room / void and previous high-low geometry context.
+  feature_count_expected: null
+- name: base_plus_enhanced_pullback_geometry
+  config: entry_feature_set_long_H120_base_plus_enhanced_pullback_geometry.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - enhanced_pullback_geometry
+  added_families:
+  - enhanced_pullback_geometry
+  description: Adds pullback depth, recovery, and trend-context pullback quality.
+  feature_count_expected: null
+- name: base_plus_fractal_structure
+  config: entry_feature_set_long_H120_base_plus_fractal_structure.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - fractal_structure
+  added_families:
+  - fractal_structure
+  description: Adds deterministic past-only high/low structure proxies; expected to
+    be noisy until proven useful.
+  feature_count_expected: null
+- name: base_plus_pivot_line
+  config: entry_feature_set_long_H120_base_plus_pivot_line.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - pivot_line
+  added_families:
+  - pivot_line
+  description: Adds pivot-line style price-location geometry; included as a cautious
+    structure test.
+  feature_count_expected: null
+- name: base_plus_compressed_price_geometry
+  config: entry_feature_set_long_H120_base_plus_compressed_price_geometry.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - compressed_price_geometry
+  added_families:
+  - compressed_price_geometry
+  description: Adds deterministic compressed price-position / range-location summaries.
+  feature_count_expected: null
+- name: base_plus_compressed_breakout
+  config: entry_feature_set_long_H120_base_plus_compressed_breakout.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - compressed_breakout
+  added_families:
+  - compressed_breakout
+  description: Adds compressed breakout context; risky for H120 but useful to isolate
+    from all-v3b deterioration.
+  feature_count_expected: null
+- name: base_plus_room_pullback
+  config: entry_feature_set_long_H120_base_plus_room_pullback.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  added_families:
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  description: 'Domain block: upside room plus pullback quality, without noisy pivot/fractal/breakout
+    additions.'
+  feature_count_expected: null
+- name: base_plus_support_room_pullback
+  config: entry_feature_set_long_H120_base_plus_support_room_pullback.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  added_families:
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  description: 'Domain block: support proximity, upside room, and pullback quality.'
+  feature_count_expected: null
+- name: base_plus_structure_core
+  config: entry_feature_set_long_H120_base_plus_structure_core.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - compressed_price_geometry
+  added_families:
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - compressed_price_geometry
+  description: 'Candidate long_H120 structure filter block: support, room, pullback,
+    and compressed geometry.'
+  feature_count_expected: null
+- name: base_plus_all_v3b
+  config: entry_feature_set_long_H120_base_plus_all_v3b.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - fractal_structure
+  - pivot_line
+  - compressed_price_geometry
+  - compressed_breakout
+  added_families:
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - fractal_structure
+  - pivot_line
+  - compressed_price_geometry
+  - compressed_breakout
+  description: All v3b structure families; included to reproduce/check the earlier
+    all-v3b candidate effect.
+  feature_count_expected: null
+notes:
+- Addition configs only change feature families; model config and split should stay
+  fixed.
+- Run on valid folds only; test remains locked-audit only.
+- 'Primary question: which v3b structure families improve long_H120 over v3a_minus_compressed_activity?'

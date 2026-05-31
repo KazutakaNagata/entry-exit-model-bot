@@ -1,0 +1,13 @@
+source: binance_japan
+symbol: BTCJPY
+timeframe: 1m
+raw_dir: data/raw/binance_japan/BTCJPY/1m
+processed_path: data/processed/binance_japan/BTCJPY/1m/ohlcv.parquet
+quality_report_dir: outputs/valid/data_quality/binance_japan/BTCJPY/1m
+required_columns:
+  - timestamp
+  - open
+  - high
+  - low
+  - close
+  - volume

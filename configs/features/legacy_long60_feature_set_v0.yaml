@@ -1,0 +1,25 @@
+feature_set_name: legacy_long60_feature_set_v0
+purpose: "Placeholder for features migrated from the old long 60m q=0.95 research."
+
+source_research_summary:
+  horizon: 60m
+  side: long
+  tail_quantile: 0.95
+  old_effective_feature_set: raw_non_compressed_baseline_long_60m
+  old_feature_count: 697
+  observation: "Old valid folds had positive top_q99_dir_avg across all five folds."
+
+migration_policy:
+  - "Migrate feature families gradually."
+  - "Do not copy old code blindly without leakage review."
+  - "Each migrated feature must be registered in feature_manifest with lookback and uses_future=false."
+  - "This feature set is a candidate for entry_long_H60 baseline, not a final production set."
+
+include_families_initial:
+  - return_path
+  - volatility
+  - trend_persistence
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout

@@ -1,0 +1,392 @@
+experiment_name: long_H120_v3a_family_ablation
+baseline_variant: v3a_full
+side: long
+horizon_minutes: 120
+configs:
+- name: v3a_full
+  config: entry_feature_set_long_H120_v3a_full.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families: []
+  description: Full v3a feature factory baseline for long_H120 ablation.
+  feature_count_expected: null
+- name: v3a_minus_breakout
+  config: entry_feature_set_long_H120_v3a_minus_breakout.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - breakout
+  description: Full v3a minus breakout; tests whether this family hurts long_H120.
+  feature_count_expected: null
+- name: v3a_minus_volume_price_pressure
+  config: entry_feature_set_long_H120_v3a_minus_volume_price_pressure.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - volume_price_pressure
+  description: Full v3a minus volume_price_pressure; tests whether this family hurts
+    long_H120.
+  feature_count_expected: null
+- name: v3a_minus_rejection_reversal
+  config: entry_feature_set_long_H120_v3a_minus_rejection_reversal.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - rejection_reversal
+  description: Full v3a minus rejection_reversal; tests whether this family hurts
+    long_H120.
+  feature_count_expected: null
+- name: v3a_minus_acceleration
+  config: entry_feature_set_long_H120_v3a_minus_acceleration.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - acceleration
+  description: Full v3a minus acceleration; tests whether this family hurts long_H120.
+  feature_count_expected: null
+- name: v3a_minus_trend_regime
+  config: entry_feature_set_long_H120_v3a_minus_trend_regime.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - trend_regime
+  description: Full v3a minus trend_regime; tests whether this family hurts long_H120.
+  feature_count_expected: null
+- name: v3a_minus_regime_switch
+  config: entry_feature_set_long_H120_v3a_minus_regime_switch.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - regime_switch
+  description: Full v3a minus regime_switch; tests whether this family hurts long_H120.
+  feature_count_expected: null
+- name: v3a_minus_micro_range
+  config: entry_feature_set_long_H120_v3a_minus_micro_range.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - micro_range
+  description: Full v3a minus micro_range; tests whether this family hurts long_H120.
+  feature_count_expected: null
+- name: v3a_minus_volume_spike
+  config: entry_feature_set_long_H120_v3a_minus_volume_spike.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - volume_spike
+  description: Full v3a minus volume_spike; tests whether this family hurts long_H120.
+  feature_count_expected: null
+- name: v3a_minus_compressed_trend
+  config: entry_feature_set_long_H120_v3a_minus_compressed_trend.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - compressed_trend
+  description: Full v3a minus compressed_trend; tests whether this family hurts long_H120.
+  feature_count_expected: null
+- name: v3a_minus_compressed_activity
+  config: entry_feature_set_long_H120_v3a_minus_compressed_activity.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  description: Full v3a minus compressed_activity; tests whether this family hurts
+    long_H120.
+  feature_count_expected: null
+- name: v3a_minus_compressed_volatility
+  config: entry_feature_set_long_H120_v3a_minus_compressed_volatility.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  dropped_families:
+  - compressed_volatility
+  description: Full v3a minus compressed_volatility; tests whether this family hurts
+    long_H120.
+  feature_count_expected: null
+- name: v3a_minus_v2_noise
+  config: entry_feature_set_long_H120_v3a_minus_v2_noise.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  description: Drops all v2 expansion families that may be short/noise oriented for
+    long_H120.
+  feature_count_expected: null
+- name: v3a_minus_short_noise
+  config: entry_feature_set_long_H120_v3a_minus_short_noise.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - volume_price_pressure
+  - rejection_reversal
+  - volume_spike
+  description: Drops pressure/rejection/spike families suspected of pulling long_H120
+    into exhaustion or short-like states.
+  feature_count_expected: null
+- name: hypothesis_core
+  config: entry_feature_set_long_H120_hypothesis_core.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - volume_spike
+  - compressed_activity
+  description: 'Domain-hypothesis long_H120 core: trend/regime, pullback, room, volatility
+    state; excludes full pressure/rejection/breakout/spike/acceleration noise candidates.'
+  feature_count_expected: null
+notes:
+- Ablation configs only change feature families; model config and split should stay
+  fixed.
+- 'Primary use: find v3a families that are unnecessary or harmful for long_H120.'
+- Run on valid folds only; test remains locked-audit only.

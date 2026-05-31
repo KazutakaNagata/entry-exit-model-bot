@@ -1,0 +1,28 @@
+feature_set_name: entry_feature_set_v1
+purpose: "First migrated feature set: minimal v0 plus reviewed structure/geometry families."
+
+include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+notes:
+  - "v1 is still intentionally conservative: no compression, no supervised scores, no future bars."
+  - "support_resistance breakout features compare current close with previous rolling levels using shift(1)."
+  - "market_structure_void is a geometry proxy, not an order-book void model."
+  - "Every generated feature must appear in feature_manifest.json with uses_future=false."

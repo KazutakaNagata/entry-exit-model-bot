@@ -1,0 +1,49 @@
+feature_families_v3a:
+  inherited_from_v2:
+    - price
+    - return_path
+    - volatility
+    - trend_persistence
+    - volume
+    - support_resistance
+    - market_structure_void
+    - pullback_geometry
+    - breakout
+    - volume_price_pressure
+    - rejection_reversal
+  added_in_v3a:
+    acceleration:
+      role: "return / trigger"
+      intent: "Return acceleration, curvature, current-return surprise, and sign persistence."
+      leakage_rule: "All returns are close[t] versus close[t-window] or rolling summaries ending at t."
+    trend_regime:
+      role: "regime"
+      intent: "Moving-average stack, rolling trend slope, directional efficiency, and trend quality."
+      leakage_rule: "Rolling windows end at t and use finalized closes only."
+    regime_switch:
+      role: "regime / trigger"
+      intent: "Volatility, activity, volume, and fast-vs-slow return regime shifts."
+      leakage_rule: "No future bars; rolling z-scores are based on windows ending at t."
+    micro_range:
+      role: "compression / trigger"
+      intent: "Range compression, intrabar structure, wick/body balance, and range expansion."
+      leakage_rule: "Current finalized candle may be used; rolling summaries end at t."
+    volume_spike:
+      role: "confirmation"
+      intent: "Volume burst, volume imbalance, and activity-weighted volume features."
+      leakage_rule: "Uses current finalized volume and rolling past volume summaries only."
+    compressed_trend:
+      role: "compressed regime"
+      intent: "Deterministic low-dimensional trend summaries across return windows."
+      leakage_rule: "No fitted compressor; all transformations are deterministic from past returns."
+    compressed_activity:
+      role: "compressed activity"
+      intent: "Deterministic activity summaries combining volume, range, and absolute returns."
+      leakage_rule: "No fitted compressor; all rolling summaries end at t."
+    compressed_volatility:
+      role: "compressed volatility"
+      intent: "Deterministic volatility regime ratios and summary statistics."
+      leakage_rule: "No fitted compressor; all rolling summaries end at t."
+notes:
+  - "v3a is the first phase of old 27-family restoration. It focuses on trend/return/volatility/activity, not structure/failure families."
+  - "Do not interpret v3a as selected. Run legacy recovery and hypothesis-block selection after building the universe."

@@ -1,0 +1,39 @@
+feature_set_name: exit_feature_set_v2
+purpose: "Exit market feature set aligned with entry_feature_set_v2 plus position-state feature variants."
+
+market_feature_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+
+position_state_features:
+  v0_market_only: []
+  v1_score_decay:
+    - age_minutes
+    - entry_pred_net_bps
+    - current_pred_net_bps
+    - score_decay_bps
+  v2_position_aware:
+    - age_minutes
+    - entry_pred_net_bps
+    - current_pred_net_bps
+    - score_decay_bps
+    - unrealized_pl_bps
+    - unrealized_pl_after_cost_bps
+    - mfe_since_entry_bps
+    - mae_since_entry_bps
+    - giveback_from_mfe_bps
+
+rules:
+  - "Entry/current scores must be OOF when building train/valid exit datasets."
+  - "Do not use in-sample entry predictions as exit features."
+  - "Do not add position-state features to the generic market feature matrix."
+  - "Market features must be generated from t and earlier finalized bars only."

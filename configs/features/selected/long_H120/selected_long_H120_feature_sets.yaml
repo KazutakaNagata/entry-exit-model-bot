@@ -1,0 +1,73 @@
+experiment_name: selected_long_H120_entry_feature_sets
+side: long
+horizon_minutes: 120
+baseline_selected_set: long_H120_v0
+candidates:
+- name: long_H120_v0
+  config: entry_feature_set_long_H120_v0.yaml
+  side: long
+  horizon_minutes: 120
+  selection_status: primary_candidate
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  added_families: []
+  description: 'Primary long_H120 candidate from valid-fold selection: feature factory
+    v3a minus compressed_activity.'
+- name: long_H120_tail_v0
+  config: entry_feature_set_long_H120_tail_v0.yaml
+  side: long
+  horizon_minutes: 120
+  selection_status: tail_candidate
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - compressed_price_geometry
+  dropped_families:
+  - compressed_activity
+  added_families:
+  - compressed_price_geometry
+  description: 'Tail-oriented long_H120 comparison candidate: primary candidate plus
+    compressed_price_geometry.  It previously improved q99 but weakened q97, so evaluate
+    with strict thresholds and episode P/L.'
+notes:
+- These configs are selected candidates from valid-fold experiments; they are not
+  test-locked policies.
+- 'long_H120_v0 is the primary candidate: v3a minus compressed_activity.'
+- long_H120_tail_v0 adds compressed_price_geometry for strict-threshold q99 comparison.
+- Downstream exit datasets must be regenerated from OOF entry predictions for each
+  candidate.

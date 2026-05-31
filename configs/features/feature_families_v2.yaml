@@ -1,0 +1,23 @@
+feature_families_v2:
+  inherited_from_v1:
+    - price
+    - return_path
+    - volatility
+    - trend_persistence
+    - volume
+    - support_resistance
+    - market_structure_void
+    - pullback_geometry
+  added_in_v2:
+    breakout:
+      intent: "Continuation features around previous rolling highs/lows, current range expansion, and breakout volume confirmation."
+      leakage_rule: "Previous breakout levels are built with high.shift(1)/low.shift(1); current finalized OHLCV may only be compared to those previous levels."
+    volume_price_pressure:
+      intent: "Rolling return/volume alignment, signed volume imbalance, and volume-weighted return pressure."
+      leakage_rule: "Uses finalized 1m returns and volumes over rolling windows ending at t; no future bars or target-derived data."
+    rejection_reversal:
+      intent: "Current finalized candle rejection shape and failed breakouts/breakdowns against previous rolling levels."
+      leakage_rule: "Wick/body features use finalized current candle; failed-break levels exclude current bar via shift(1)."
+notes:
+  - "v2 is still a migration scaffold. It does not include compressed or supervised family scores."
+  - "Feature selection, compression, and family ablation happen after end-to-end plumbing is stable."

@@ -1,0 +1,44 @@
+feature_set_name: entry_feature_set_long_H120_v3a_minus_v2_noise
+purpose: 'long_H120 v3a family ablation: Drops all v2 expansion families that may
+  be short/noise oriented for long_H120.'
+base_feature_set: entry_feature_set_v3a
+side: long
+horizon_minutes: 120
+dropped_families:
+- breakout
+- volume_price_pressure
+- rejection_reversal
+include_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+- acceleration
+- trend_regime
+- regime_switch
+- micro_range
+- volume_spike
+- compressed_trend
+- compressed_activity
+- compressed_volatility
+exclude_patterns:
+- target_*
+- future_*
+- '*_label*'
+- '*label*'
+- '*_y'
+- '*hold_delta*'
+- '*mfe*'
+- '*mae*'
+- diag_*
+notes:
+- This config is for valid-fold ablation only, not production adoption.
+- It is designed for long_H120 after v3a improved q95/q97/q99 metrics.
+- Compare against v3a_full with worst-fold metrics emphasized over mean-only gains.
+- No test data should be read while evaluating this config.
+- Every included family must remain deterministic and past-only; audit_features.py
+  --strict should pass.

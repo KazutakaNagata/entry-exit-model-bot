@@ -1,0 +1,147 @@
+name: entry_feature_variants_v1_v2
+base_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+candidate_families:
+- breakout
+- volume_price_pressure
+- rejection_reversal
+variants:
+- name: v1_baseline
+  config: entry_feature_set_v1_baseline.yaml
+  added_families: []
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  description: Original v1 baseline families.
+- name: v1_plus_breakout
+  config: entry_feature_set_v1_plus_breakout.yaml
+  added_families:
+  - breakout
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  description: v1 plus breakout continuation family.
+- name: v1_plus_volume_price_pressure
+  config: entry_feature_set_v1_plus_volume_price_pressure.yaml
+  added_families:
+  - volume_price_pressure
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - volume_price_pressure
+  description: v1 plus volume/price pressure family.
+- name: v1_plus_rejection_reversal
+  config: entry_feature_set_v1_plus_rejection_reversal.yaml
+  added_families:
+  - rejection_reversal
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - rejection_reversal
+  description: v1 plus rejection/reversal family.
+- name: v1_plus_breakout_volume_price_pressure
+  config: entry_feature_set_v1_plus_breakout_volume_price_pressure.yaml
+  added_families:
+  - breakout
+  - volume_price_pressure
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  description: v1 plus breakout and volume/price pressure families.
+- name: v1_plus_breakout_rejection_reversal
+  config: entry_feature_set_v1_plus_breakout_rejection_reversal.yaml
+  added_families:
+  - breakout
+  - rejection_reversal
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - rejection_reversal
+  description: v1 plus breakout and rejection/reversal families.
+- name: v1_plus_volume_price_pressure_rejection_reversal
+  config: entry_feature_set_v1_plus_volume_price_pressure_rejection_reversal.yaml
+  added_families:
+  - volume_price_pressure
+  - rejection_reversal
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - volume_price_pressure
+  - rejection_reversal
+  description: v1 plus volume/price pressure and rejection/reversal families.
+- name: v2_all
+  config: entry_feature_set_v2_all.yaml
+  added_families:
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  description: v1 plus all reviewed v2 candidate families.
+notes:
+- Use these variants to decompose the v2 all-family result.
+- 'Recommended first focus models: long_H120 and short_H240.'
+- Do not use test to choose variants.

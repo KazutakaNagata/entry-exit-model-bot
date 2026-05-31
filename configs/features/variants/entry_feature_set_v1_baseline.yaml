@@ -1,0 +1,30 @@
+feature_set_name: entry_feature_set_v1_baseline
+purpose: 'entry feature variant: Original v1 baseline families.'
+base_feature_set: entry_feature_set_v1
+added_families: []
+include_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+exclude_patterns:
+- target_*
+- future_*
+- '*_label*'
+- '*label*'
+- '*_y'
+- '*hold_delta*'
+- '*mfe*'
+- '*mae*'
+- diag_*
+notes:
+- Variant configs are for valid-fold feature-family comparison only.
+- They do not touch test and do not imply production adoption.
+- Every family must be deterministic and past-only; audit_features.py --strict should
+  pass.
+- Compare variants on valid folds, with worst-fold metrics emphasized over mean-only
+  gains.

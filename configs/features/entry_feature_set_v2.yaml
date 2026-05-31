@@ -1,0 +1,33 @@
+feature_set_name: entry_feature_set_v2
+purpose: "v1 plus reviewed breakout, volume/price pressure, and rejection/reversal families."
+
+include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+notes:
+  - "v2 is still deterministic and past-only; no supervised/compressed scores are included."
+  - "breakout features compare current finalized bar with previous rolling levels using shift(1)."
+  - "volume_price_pressure uses finalized 1m returns and volume over rolling windows ending at t."
+  - "rejection_reversal uses current finalized candle plus previous rolling levels for failed-break features."
+  - "Every generated feature must appear in feature_manifest.json with uses_future=false."

@@ -1,0 +1,28 @@
+label_name: entry_net_return_v0
+model_role: entry
+kind: regression
+
+execution:
+  decision_after_bar_close: true
+  entry_price: next_open
+  exit_price: next_open_after_horizon
+
+costs:
+  roundtrip_cost_bps: 15.0
+
+horizons_minutes:
+  - 60
+  - 120
+  - 240
+
+sides:
+  - long
+  - short
+
+formula:
+  long:  "log(open[t+1+H] / open[t+1]) * 10000 - roundtrip_cost_bps"
+  short: "-log(open[t+1+H] / open[t+1]) * 10000 - roundtrip_cost_bps"
+
+rules:
+  - "Features at row t must use data <= t only."
+  - "Label may use future data but must never be included as feature."

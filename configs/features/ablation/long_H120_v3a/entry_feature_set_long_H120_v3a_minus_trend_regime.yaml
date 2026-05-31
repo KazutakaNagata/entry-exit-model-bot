@@ -1,0 +1,44 @@
+feature_set_name: entry_feature_set_long_H120_v3a_minus_trend_regime
+purpose: 'long_H120 v3a family ablation: Full v3a minus trend_regime; tests whether
+  this family hurts long_H120.'
+base_feature_set: entry_feature_set_v3a
+side: long
+horizon_minutes: 120
+dropped_families:
+- trend_regime
+include_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+- breakout
+- volume_price_pressure
+- rejection_reversal
+- acceleration
+- regime_switch
+- micro_range
+- volume_spike
+- compressed_trend
+- compressed_activity
+- compressed_volatility
+exclude_patterns:
+- target_*
+- future_*
+- '*_label*'
+- '*label*'
+- '*_y'
+- '*hold_delta*'
+- '*mfe*'
+- '*mae*'
+- diag_*
+notes:
+- This config is for valid-fold ablation only, not production adoption.
+- It is designed for long_H120 after v3a improved q95/q97/q99 metrics.
+- Compare against v3a_full with worst-fold metrics emphasized over mean-only gains.
+- No test data should be read while evaluating this config.
+- Every included family must remain deterministic and past-only; audit_features.py
+  --strict should pass.

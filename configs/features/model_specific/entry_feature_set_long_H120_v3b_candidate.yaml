@@ -1,0 +1,48 @@
+feature_set_name: entry_feature_set_long_H120_v3b_candidate
+purpose: "Current long_H120 candidate: v3a minus compressed_activity, plus v3b structure / room / price-geometry families. Validate only; do not touch test."
+side: long
+horizon_minutes: 120
+base_feature_set: entry_feature_set_long_H120_v3a_minus_compressed_activity
+
+include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - fractal_structure
+  - pivot_line
+  - compressed_price_geometry
+  - compressed_breakout
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+notes:
+  - "compressed_activity is intentionally excluded after long_H120 v3a ablation and combined ablation."
+  - "breakout, volume_price_pressure, rejection_reversal remain included because combined ablation showed interaction with compressed_activity removal."
+  - "v3b additions target upside room, support structure, pullback quality, price geometry, and compressed breakout context."

@@ -1,0 +1,48 @@
+feature_set_name: entry_feature_set_long_H120_v0
+purpose: 'Primary long_H120 candidate from valid-fold selection: feature factory v3a
+  minus compressed_activity.'
+side: long
+horizon_minutes: 120
+selection_status: primary_candidate
+selection_source: valid_only_long_H120_v3a_combined_and_v3b_addition_experiments
+base_feature_set: entry_feature_set_v3a
+dropped_families:
+- compressed_activity
+added_families: []
+include_families:
+- price
+- return_path
+- volatility
+- trend_persistence
+- volume
+- support_resistance
+- market_structure_void
+- pullback_geometry
+- breakout
+- volume_price_pressure
+- rejection_reversal
+- acceleration
+- trend_regime
+- regime_switch
+- micro_range
+- volume_spike
+- compressed_trend
+- compressed_volatility
+exclude_patterns:
+- target_*
+- future_*
+- '*_label*'
+- '*label*'
+- '*_y'
+- '*hold_delta*'
+- '*mfe*'
+- '*mae*'
+- diag_*
+notes:
+- Selected-feature config for valid-fold downstream evaluation only.
+- No test data should be read while building, training, or comparing this feature
+  set.
+- Entry target remains fixed-hold net_return_bps regression for long_H120.
+- Use OOF entry predictions from this feature set when building exit datasets.
+- Every included family must remain deterministic and past-only; audit_features.py
+  --strict should pass.

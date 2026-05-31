@@ -1,0 +1,243 @@
+experiment_name: long_H120_v3a_combined_ablation
+baseline_variant: v3a_full
+side: long
+horizon_minutes: 120
+configs:
+- name: v3a_full
+  config: entry_feature_set_long_H120_v3a_full.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families: []
+  description: Full v3a baseline, included for direct comparison with combined removals.
+  feature_count_expected: null
+- name: v3a_minus_compressed_activity
+  config: entry_feature_set_long_H120_v3a_minus_compressed_activity.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  description: Drops the strongest leave-one-out noise candidate from the first long_H120
+    ablation.
+  feature_count_expected: null
+- name: v3a_minus_compressed_activity_rejection_reversal
+  config: entry_feature_set_long_H120_v3a_minus_compressed_activity_rejection_reversal.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  - rejection_reversal
+  description: Tests whether removing the activity-compression noise and short-oriented
+    rejection family is additive.
+  feature_count_expected: null
+- name: v3a_minus_compressed_activity_breakout
+  config: entry_feature_set_long_H120_v3a_minus_compressed_activity_breakout.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - volume_price_pressure
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  - breakout
+  description: Tests whether long_H120 prefers regime continuation without immediate
+    breakout trigger features.
+  feature_count_expected: null
+- name: v3a_minus_rejection_reversal_breakout
+  config: entry_feature_set_long_H120_v3a_minus_rejection_reversal_breakout.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - volume_price_pressure
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_activity
+  - compressed_volatility
+  dropped_families:
+  - rejection_reversal
+  - breakout
+  description: Drops the two non-activity families that improved in leave-one-out,
+    while keeping compressed_activity for interaction check.
+  feature_count_expected: null
+- name: v3a_minus_compressed_activity_rejection_reversal_breakout
+  config: entry_feature_set_long_H120_v3a_minus_compressed_activity_rejection_reversal_breakout.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - volume_price_pressure
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  - rejection_reversal
+  - breakout
+  description: 'Main combined-noise candidate: removes activity compression, rejection/failure,
+    and breakout trigger families.'
+  feature_count_expected: null
+- name: v3a_minus_compressed_activity_volume_price_pressure
+  config: entry_feature_set_long_H120_v3a_minus_compressed_activity_volume_price_pressure.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - rejection_reversal
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  - volume_price_pressure
+  description: Cautious test of whether pressure features are still needed after removing
+    compressed_activity.
+  feature_count_expected: null
+- name: v3a_minus_compressed_activity_rejection_reversal_breakout_volume_price_pressure
+  config: entry_feature_set_long_H120_v3a_minus_compressed_activity_rejection_reversal_breakout_volume_price_pressure.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - volume_spike
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  - rejection_reversal
+  - breakout
+  - volume_price_pressure
+  description: Aggressive noise-removal candidate; included as a stress test because
+    volume_price_pressure had mixed q95/q99 effects.
+  feature_count_expected: null
+- name: v3a_minus_compressed_activity_rejection_reversal_breakout_volume_spike
+  config: entry_feature_set_long_H120_v3a_minus_compressed_activity_rejection_reversal_breakout_volume_spike.yaml
+  include_families:
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - volume_price_pressure
+  - acceleration
+  - trend_regime
+  - regime_switch
+  - micro_range
+  - compressed_trend
+  - compressed_volatility
+  dropped_families:
+  - compressed_activity
+  - rejection_reversal
+  - breakout
+  - volume_spike
+  description: Stress test that also removes volume_spike; expected to be risky because
+    leave-one-out suggested volume_spike is important.
+  feature_count_expected: null
+notes:
+- Second-pass combined ablation after the leave-one-family-out long_H120 v3a experiment.
+- Ablation configs only change feature families; model config and split should stay
+  fixed.
+- Run on valid folds only; test remains locked-audit only.
