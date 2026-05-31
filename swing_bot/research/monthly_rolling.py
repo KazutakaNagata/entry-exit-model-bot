@@ -153,7 +153,7 @@ def build_monthly_cycles(
     return cycles
 
 
-def load_rolling_monthly_config(path: Path | str) -> RollingMonthlyConfig:
+def load_rolling_monthly_config(path: Path | str, *, allow_empty_feature_policies: bool = False) -> RollingMonthlyConfig:
     raw = read_yaml(path)
     if not isinstance(raw, dict):
         raise ValueError(f"rolling monthly config must be a mapping: {path}")
@@ -166,7 +166,7 @@ def load_rolling_monthly_config(path: Path | str) -> RollingMonthlyConfig:
                 description=str(item.get("description") or ""),
             )
         )
-    if not policies:
+    if not policies and not allow_empty_feature_policies:
         raise ValueError("rolling monthly config must define feature_policies")
     entry = raw.get("entry_selection") or {}
     train = raw.get("training") or {}

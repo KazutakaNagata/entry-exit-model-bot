@@ -130,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
     run_id = args.run_id or f"{source_run_dir.name}_score_history_q{str(args.score_quantile or 'cfg').replace('.', 'p')}_replay"
     output_root = args.output_root if args.output_root.is_absolute() else REPO_ROOT / args.output_root
     run_dir = output_root / run_id
-    cfg = load_rolling_monthly_config(args.config)
+    cfg = load_rolling_monthly_config(args.config, allow_empty_feature_policies=True)
     cfg = replace(
         cfg,
         entry_selection_mode="score_history_quantile",
