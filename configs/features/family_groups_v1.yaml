@@ -1,0 +1,154 @@
+schema_version: 1
+name: feature_family_groups_v1
+purpose: >
+  Human-reviewed grouping for Long_H120 feature selection. Groups are concept
+  buckets, not implementation modules. Canonical families form the cleaned
+  baseline; archived families remain available for later variant swaps but are
+  excluded from canonical_full_v1.
+
+selection_rules:
+  - "Use at most one canonical family per group in canonical_full_v1."
+  - "Do not mix base/enhanced/compressed/lite variants in the canonical baseline."
+  - "Run group ablation on canonical_full_v1 before variant swaps."
+  - "Treat archived families as available but non-canonical; do not delete them."
+
+groups:
+  price_base:
+    description: "Small primitive 1m price/candle basis."
+    canonical:
+      - price
+    archive: []
+
+  bar_microstructure:
+    description: "Short-horizon 1m candle range, wick, close-position, and rejection-shape features."
+    canonical:
+      - micro_range
+    archive:
+      - rejection_reversal
+
+  return_momentum:
+    description: "Past close-to-close return path and return acceleration."
+    canonical:
+      - return_path
+    archive:
+      - acceleration
+
+  trend:
+    description: "Trend direction, slope, MA distance, and persistence summaries."
+    canonical:
+      - compressed_trend
+    archive:
+      - trend_persistence
+      - trend_regime
+    notes:
+      - "trend_regime is archived after valid/test evidence that dropping it improved Long_H120 fixed-threshold results."
+
+  regime_shift:
+    description: "Volatility/activity/volume regime z-score and state-change proxies."
+    canonical:
+      - regime_switch
+    archive: []
+
+  volatility:
+    description: "Realized volatility state and compressed volatility summaries."
+    canonical:
+      - compressed_volatility
+    archive:
+      - volatility
+
+  activity:
+    description: "Absolute-return, range, and activity intensity summaries."
+    canonical:
+      - compressed_activity
+    archive: []
+    notes:
+      - "Kept canonical for v1, but expected to be an early group-ablation candidate because it overlaps volatility and range."
+
+  volume_level:
+    description: "Volume level, relative volume, and volume-spike features without directional price pressure."
+    canonical:
+      - volume_spike
+    archive:
+      - volume
+
+  volume_pressure:
+    description: "Direction-aware volume and price-pressure features."
+    canonical:
+      - volume_price_pressure
+    archive: []
+
+  breakout:
+    description: "Prior high/low breakout, breakdown, failed-breakout, and breakout-strength features."
+    canonical:
+      - breakout
+    archive:
+      - compressed_breakout
+
+  support_resistance:
+    description: "Support/resistance and pivot-line distance/position features."
+    canonical:
+      - support_resistance
+    archive:
+      - enhanced_support_resistance
+      - pivot_line
+
+  market_structure:
+    description: "Room/void, prior structure, and higher-high/higher-low style features."
+    canonical:
+      - market_structure_void
+    archive:
+      - enhanced_market_structure_void
+      - fractal_structure
+
+  pullback:
+    description: "Drawdown, bounce, recovery, and pullback geometry features."
+    canonical:
+      - pullback_geometry
+    archive:
+      - enhanced_pullback_geometry
+
+  price_geometry:
+    description: "Compressed range-position and upside/downside room summaries."
+    canonical:
+      - compressed_price_geometry
+    archive: []
+
+  timeframe_candle:
+    description: "Anchored higher-timeframe OHLC, body, wick, range, and level features."
+    canonical:
+      - anchored_timeframe_candle
+    archive:
+      - anchored_timeframe_candle_lite
+
+  timeframe_indicator:
+    description: "Anchored higher-timeframe EMA/ATR/RSI/Bollinger/MACD-style indicator features."
+    canonical:
+      - anchored_timeframe_indicators
+    archive: []
+
+  timeframe_phase:
+    description: "Calendar/timeframe phase features, independent of price."
+    canonical:
+      - timeframe_phase
+    archive: []
+
+canonical_full_v1:
+  include_families:
+    - price
+    - micro_range
+    - return_path
+    - compressed_trend
+    - regime_switch
+    - compressed_volatility
+    - compressed_activity
+    - volume_spike
+    - volume_price_pressure
+    - breakout
+    - support_resistance
+    - market_structure_void
+    - pullback_geometry
+    - compressed_price_geometry
+    - anchored_timeframe_candle
+    - anchored_timeframe_indicators
+    - timeframe_phase
+

@@ -1,0 +1,61 @@
+feature_set_name: entry_feature_set_long_H120_canonical_full_v1
+purpose: >
+  Clean Long_H120 canonical feature baseline. This set uses one canonical
+  implementation per reviewed feature group and intentionally excludes archived
+  duplicate variants such as trend_regime, compressed_breakout, enhanced_*
+  structure families, and anchored_timeframe_candle_lite.
+side: long
+horizon_minutes: 120
+family_group_registry: configs/features/family_groups_v1.yaml
+base_feature_set: canonical_full_v1
+
+include_families:
+  - price
+  - micro_range
+  - return_path
+  - compressed_trend
+  - regime_switch
+  - compressed_volatility
+  - compressed_activity
+  - volume_spike
+  - volume_price_pressure
+  - breakout
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - compressed_price_geometry
+  - anchored_timeframe_candle
+  - anchored_timeframe_indicators
+  - timeframe_phase
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+archived_families_by_design:
+  - rejection_reversal
+  - acceleration
+  - trend_persistence
+  - trend_regime
+  - volatility
+  - volume
+  - compressed_breakout
+  - enhanced_support_resistance
+  - pivot_line
+  - enhanced_market_structure_void
+  - fractal_structure
+  - enhanced_pullback_geometry
+  - anchored_timeframe_candle_lite
+
+notes:
+  - "This is the baseline for group ablation, not a final production set."
+  - "Each included family represents one group in configs/features/family_groups_v1.yaml."
+  - "Variant swaps should be evaluated only after group ablation identifies useful groups."
+
