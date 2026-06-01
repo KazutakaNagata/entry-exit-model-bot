@@ -1,0 +1,72 @@
+feature_set_name: entry_feature_set_long_H120_canonical_full_v2
+purpose: >
+  Long_H120 performance-oriented canonical baseline. This keeps the clear
+  trend_regime drop, avoids the most direct base/compressed duplicates, and
+  restores broader structure families that canonical_full_v1 removed too
+  aggressively.
+side: long
+horizon_minutes: 120
+base_feature_set: canonical_full_v2
+
+include_families:
+  # Primitive and short-horizon state.
+  - price
+  - micro_range
+  - return_path
+
+  # Keep compressed trend/volatility summaries; exclude raw trend_regime,
+  # trend_persistence, and raw volatility for this v2 baseline.
+  - compressed_trend
+  - regime_switch
+  - compressed_volatility
+  - compressed_activity
+
+  # Volume level and directional pressure.
+  - volume_spike
+  - volume_price_pressure
+
+  # Keep base breakout; exclude compressed_breakout to avoid direct duplication.
+  - breakout
+
+  # Restore broader structure information that v1 removed.
+  - support_resistance
+  - enhanced_support_resistance
+  - pivot_line
+  - market_structure_void
+  - enhanced_market_structure_void
+  - fractal_structure
+  - pullback_geometry
+  - enhanced_pullback_geometry
+  - compressed_price_geometry
+
+  # Human-watched anchored timeframe features.
+  - anchored_timeframe_candle
+  - anchored_timeframe_indicators
+  - timeframe_phase
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+excluded_families_by_design:
+  - rejection_reversal
+  - acceleration
+  - trend_persistence
+  - trend_regime
+  - volatility
+  - volume
+  - compressed_breakout
+  - anchored_timeframe_candle_lite
+
+notes:
+  - "v1 was too aggressively pruned and underperformed old_full_v3b."
+  - "v2 keeps trend_regime excluded while restoring enhanced/pivot/fractal structure families."
+  - "This is still a candidate baseline; group ablation should be run only if this single-policy baseline is viable."
+
