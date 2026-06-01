@@ -16,6 +16,7 @@ from swing_bot.features.families.timeframe_utils import (
     log_bps,
     resample_ohlcv_closed,
     safe_div,
+    safe_range_position,
     timeframe_label,
 )
 
@@ -39,18 +40,18 @@ def _candle_block(
     l = aligned["low"].astype("float64")
     c = aligned["close"].astype("float64")
     v = aligned["volume"].astype("float64")
-    rng = (h - l).replace(0.0, np.nan)
+    rng = h - l
     body = c - o
     upper = h - pd.concat([o, c], axis=1).max(axis=1)
     lower = pd.concat([o, c], axis=1).min(axis=1) - l
 
     columns: dict[str, pd.Series] = {
         f"atc_{label}_body_bps": log_bps(c, o),
-        f"atc_{label}_range_bps": safe_div(rng, c.replace(0.0, np.nan)) * 10000.0,
-        f"atc_{label}_body_to_range": safe_div(body.abs(), rng),
-        f"atc_{label}_upper_wick_ratio": safe_div(upper, rng),
-        f"atc_{label}_lower_wick_ratio": safe_div(lower, rng),
-        f"atc_{label}_close_position": safe_div(c - l, rng),
+        f"atc_{label}_range_bps": safe_div(rng, c.replace(0.0, np.nan), zero_fill=0.0) * 10000.0,
+        f"atc_{label}_body_to_range": safe_div(body.abs(), rng, zero_fill=0.0),
+        f"atc_{label}_upper_wick_ratio": safe_div(upper, rng, zero_fill=0.0),
+        f"atc_{label}_lower_wick_ratio": safe_div(lower, rng, zero_fill=0.0),
+        f"atc_{label}_close_position": safe_range_position(c, l, h),
         f"atc_{label}_is_bull": (c > o).astype("float64"),
         f"atc_{label}_current_close_vs_bar_high_bps": log_bps(current_close, h),
         f"atc_{label}_current_close_vs_bar_low_bps": log_bps(current_close, l),
@@ -94,13 +95,13 @@ def _level_block(
         roll_high = aligned["roll_high"].astype("float64")
         roll_low = aligned["roll_low"].astype("float64")
         prev_close_aligned = aligned["prev_close"].astype("float64")
-        rng = (roll_high - roll_low).replace(0.0, np.nan)
+        rng = roll_high - roll_low
         lookback = int(tf_minutes * (bars + 1))
         cols = {
             f"atc_{label}_prev{bars}_high_dist_bps": log_bps(current_close, roll_high),
             f"atc_{label}_prev{bars}_low_dist_bps": log_bps(current_close, roll_low),
-            f"atc_{label}_prev{bars}_range_position": safe_div(current_close - roll_low, rng),
-            f"atc_{label}_prev{bars}_range_bps": safe_div(rng, current_close.replace(0.0, np.nan)) * 10000.0,
+            f"atc_{label}_prev{bars}_range_position": safe_range_position(current_close, roll_low, roll_high),
+            f"atc_{label}_prev{bars}_range_bps": safe_div(rng, current_close.replace(0.0, np.nan), zero_fill=0.0) * 10000.0,
             f"atc_{label}_prev{bars}_close_dist_bps": log_bps(current_close, prev_close_aligned),
             f"atc_{label}_break_prev{bars}_high": (current_close > roll_high).astype("float64"),
             f"atc_{label}_break_prev{bars}_low": (current_close < roll_low).astype("float64"),

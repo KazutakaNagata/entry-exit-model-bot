@@ -19,13 +19,28 @@ def ensure_utc_timestamp_series(df: pd.DataFrame) -> pd.Series:
     return pd.Series(ts, index=df.index, name="timestamp")
 
 
-def safe_div(num: pd.Series, den: pd.Series | float) -> pd.Series:
-    """Divide while replacing zero denominators with NaN."""
+def safe_div(num: pd.Series, den: pd.Series | float, *, zero_fill: float | None = None) -> pd.Series:
+    """Divide while guarding zero denominators.
+
+    ``zero_fill`` fills only rows where the denominator is exactly zero. It does
+    not fill warmup NaNs, so lookback-related missing values remain visible.
+    """
     if isinstance(den, pd.Series):
-        return num / den.replace(0.0, np.nan)
+        zero_den = den.eq(0.0)
+        out = num / den.mask(zero_den)
+        if zero_fill is not None:
+            out = out.mask(zero_den & num.notna(), zero_fill)
+        return out.replace([np.inf, -np.inf], np.nan)
     if den == 0:
-        return num * np.nan
-    return num / den
+        return pd.Series(zero_fill, index=num.index, dtype="float64") if zero_fill is not None else num * np.nan
+    return (num / den).replace([np.inf, -np.inf], np.nan)
+
+
+def safe_range_position(value: pd.Series, low: pd.Series, high: pd.Series, *, zero_fill: float = 0.5) -> pd.Series:
+    """Position inside [low, high], using a neutral value for zero-width ranges."""
+    rng = high - low
+    out = (value - low) / rng.mask(rng.eq(0.0))
+    return out.mask(rng.eq(0.0) & value.notna(), zero_fill).clip(lower=0.0, upper=1.0)
 
 
 def log_bps(num: pd.Series, den: pd.Series) -> pd.Series:
@@ -129,11 +144,19 @@ def true_range(high: pd.Series, low: pd.Series, close: pd.Series) -> pd.Series:
 
 
 def rsi(close: pd.Series, window: int = 14) -> pd.Series:
-    """Simple rolling RSI; no future data."""
+    """Simple rolling RSI; no future data.
+
+    Flat windows are neutral 50, one-sided up windows are 100, and one-sided
+    down windows are 0.  This avoids long NaN stretches in quiet markets.
+    """
     delta = close.diff()
     gain = delta.clip(lower=0.0)
     loss = (-delta).clip(lower=0.0)
     avg_gain = gain.rolling(window=window, min_periods=window).mean()
     avg_loss = loss.rolling(window=window, min_periods=window).mean()
-    rs = avg_gain / avg_loss.replace(0.0, np.nan)
-    return 100.0 - (100.0 / (1.0 + rs))
+    rs = avg_gain / avg_loss.mask(avg_loss.eq(0.0))
+    out = 100.0 - (100.0 / (1.0 + rs))
+    out = out.mask(avg_gain.eq(0.0) & avg_loss.eq(0.0), 50.0)
+    out = out.mask(avg_gain.gt(0.0) & avg_loss.eq(0.0), 100.0)
+    out = out.mask(avg_gain.eq(0.0) & avg_loss.gt(0.0), 0.0)
+    return out

@@ -1,0 +1,61 @@
+feature_set_name: entry_feature_set_long_H120_curated_core_plus_timeframe_v0
+purpose: "Long_H120 curated existing families plus all human-watched anchored timeframe features. Designed for Mac-friendly fixed-train feature-power checks. Existing families are intentionally pruned; new timeframe families are included in full."
+side: long
+horizon_minutes: 120
+base_feature_set: curated_existing_core_plus_full_timeframe
+
+include_families:
+  # Minimal market state / normalization core.
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+
+  # Long_H120 hypothesis: regime transition + trend continuation + volatility state.
+  - regime_switch
+  - compressed_trend
+  - compressed_volatility
+  - volume_spike
+
+  # Lightweight geometry that helped tail selection without pulling in all structure families.
+  - compressed_price_geometry
+
+  # New human-watched timeframe features: include all full versions, not lite.
+  - anchored_timeframe_candle
+  - anchored_timeframe_indicators
+  - timeframe_phase
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+excluded_existing_families_by_design:
+  # Explicitly excluded from this core test to save memory and avoid known/noisy blocks.
+  - compressed_activity
+  - pivot_line
+  - rejection_reversal
+  - compressed_breakout
+  - fractal_structure
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - support_resistance
+  - market_structure_void
+  - pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - acceleration
+  - micro_range
+
+notes:
+  - "This is the first Mac-friendly test: keep a small existing long_H120 core, add all new anchored timeframe features."
+  - "Do not interpret exclusions as permanent global drops. This config is for a quick fixed-train valid-only feature-power check."
+  - "Requires the full human timeframe feature families: anchored_timeframe_candle, anchored_timeframe_indicators, timeframe_phase."

@@ -65,10 +65,17 @@ def feature_summary(features: pd.DataFrame, specs: Sequence[FeatureSpec]) -> dic
     family_counts: dict[str, int] = {}
     for spec in specs:
         family_counts[spec.family] = family_counts.get(spec.family, 0) + 1
+    top_null_columns = [
+        {"column": str(name), "null_rate": float(rate)}
+        for name, rate in null_rates.head(20).items()
+    ] if len(null_rates) else []
     return {
         "rows": int(len(features)),
         "feature_count": int(len(feature_cols)),
         "families": family_counts,
         "max_null_rate": float(null_rates.iloc[0]) if len(null_rates) else 0.0,
         "columns_with_nulls": int((features[feature_cols].isna().any()).sum()) if feature_cols else 0,
+        "columns_null_rate_gt_50pct": int((null_rates > 0.50).sum()) if len(null_rates) else 0,
+        "columns_null_rate_gt_95pct": int((null_rates > 0.95).sum()) if len(null_rates) else 0,
+        "top_null_columns": top_null_columns,
     }

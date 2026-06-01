@@ -10,8 +10,20 @@ WINDOWS = (5, 8, 13, 21, 34, 55, 89, 144, 240)
 RATIO_PAIRS = ((5, 21), (8, 34), (13, 55), (21, 89), (34, 144), (55, 240))
 
 
-def _safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
-    return a / b.replace(0.0, np.nan)
+def _safe_div(a: pd.Series, b: pd.Series, *, zero_fill: float | None = None) -> pd.Series:
+    """Divide while preserving warmup NaNs and optionally filling only zero denominators."""
+    zero_den = b.eq(0.0)
+    out = a / b.mask(zero_den)
+    if zero_fill is not None:
+        out = out.mask(zero_den & a.notna(), zero_fill)
+    return out.replace([np.inf, -np.inf], np.nan)
+
+
+def _safe_close_position(close: pd.Series, low: pd.Series, high: pd.Series) -> pd.Series:
+    rng = high - low
+    out = (close - low) / rng.mask(rng.eq(0.0))
+    # A zero-range candle has no directional information; 0.5 is neutral.
+    return out.mask(rng.eq(0.0), 0.5).clip(lower=0.0, upper=1.0)
 
 
 def build_micro_range_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[FeatureSpec]]:
@@ -28,12 +40,17 @@ def build_micro_range_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[Fea
     body_bps = np.log(close / open_.replace(0.0, np.nan)).abs() * 10000.0
     upper_wick_bps = np.log((high + eps) / np.maximum(open_, close).replace(0.0, np.nan)) * 10000.0
     lower_wick_bps = np.log(np.minimum(open_, close).replace(0.0, np.nan) / (low + eps)) * 10000.0
-    close_pos = (close - low) / (high - low).replace(0.0, np.nan)
+    close_pos = _safe_close_position(close, low, high)
+    body_share = _safe_div(body_bps, bar_range_bps, zero_fill=0.0)
+    upper_wick_share = _safe_div(upper_wick_bps, bar_range_bps, zero_fill=0.0)
+    lower_wick_share = _safe_div(lower_wick_bps, bar_range_bps, zero_fill=0.0)
+    wick_sum = upper_wick_bps + lower_wick_bps
+    wick_imbalance = _safe_div(lower_wick_bps - upper_wick_bps, wick_sum, zero_fill=0.0)
 
     out["micro_bar_range_1m_bps"] = bar_range_bps
-    out["micro_body_to_range_1m"] = _safe_div(body_bps, bar_range_bps)
-    out["micro_upper_wick_to_range_1m"] = _safe_div(upper_wick_bps, bar_range_bps)
-    out["micro_lower_wick_to_range_1m"] = _safe_div(lower_wick_bps, bar_range_bps)
+    out["micro_body_to_range_1m"] = body_share
+    out["micro_upper_wick_to_range_1m"] = upper_wick_share
+    out["micro_lower_wick_to_range_1m"] = lower_wick_share
     out["micro_close_position_1m"] = close_pos
     specs.extend([
         FeatureSpec("micro_bar_range_1m_bps", "micro_range", 1, description="Current finalized 1m high/low range."),
@@ -53,11 +70,11 @@ def build_micro_range_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[Fea
         specs.append(FeatureSpec(name, "micro_range", window, description=f"Mean 1m range over past {window}m."))
 
         name = f"micro_range_z_{window}m"
-        out[name] = (bar_range_bps - range_mean[window]) / range_std[window].replace(0.0, np.nan)
+        out[name] = _safe_div(bar_range_bps - range_mean[window], range_std[window], zero_fill=0.0)
         specs.append(FeatureSpec(name, "micro_range", window, description=f"Current 1m range z-score over {window}m."))
 
         name = f"micro_body_share_mean_{window}m"
-        out[name] = _safe_div(body_bps, bar_range_bps).rolling(window=window, min_periods=window).mean()
+        out[name] = body_share.rolling(window=window, min_periods=window).mean()
         specs.append(FeatureSpec(name, "micro_range", window, description=f"Mean body/range share over {window}m."))
 
         name = f"micro_close_position_mean_{window}m"
@@ -65,17 +82,16 @@ def build_micro_range_features(df: pd.DataFrame) -> tuple[pd.DataFrame, list[Fea
         specs.append(FeatureSpec(name, "micro_range", window, description=f"Mean close position inside candles over {window}m."))
 
         name = f"micro_wick_imbalance_mean_{window}m"
-        wick_sum = (upper_wick_bps + lower_wick_bps).replace(0.0, np.nan)
-        out[name] = ((lower_wick_bps - upper_wick_bps) / wick_sum).rolling(window=window, min_periods=window).mean()
+        out[name] = wick_imbalance.rolling(window=window, min_periods=window).mean()
         specs.append(FeatureSpec(name, "micro_range", window, description=f"Mean lower-minus-upper wick imbalance over {window}m."))
 
     for short, long in RATIO_PAIRS:
         name = f"micro_range_compression_{short}_{long}m"
-        out[name] = _safe_div(range_mean[short], range_mean[long])
+        out[name] = _safe_div(range_mean[short], range_mean[long], zero_fill=1.0)
         specs.append(FeatureSpec(name, "micro_range", long, description=f"{short}m mean range divided by {long}m mean range."))
 
         name = f"micro_range_volatility_ratio_{short}_{long}m"
-        out[name] = _safe_div(range_std[short], range_std[long])
+        out[name] = _safe_div(range_std[short], range_std[long], zero_fill=1.0)
         specs.append(FeatureSpec(name, "micro_range", long, description=f"{short}m range std divided by {long}m range std."))
 
     return out, specs

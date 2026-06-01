@@ -1,0 +1,61 @@
+feature_set_name: entry_feature_set_long_H120_curated_broad_plus_timeframe_v0
+purpose: "Long_H120 broader curated existing families plus all human-watched anchored timeframe features. Keeps more rolling structure than the core config while still excluding likely noisy families."
+side: long
+horizon_minutes: 120
+base_feature_set: curated_existing_broad_plus_full_timeframe
+
+include_families:
+  # Basic rolling core.
+  - price
+  - return_path
+  - volatility
+  - trend_persistence
+  - volume
+
+  # Long_H120 trend/regime/volatility state.
+  - regime_switch
+  - trend_regime
+  - compressed_trend
+  - compressed_volatility
+  - volume_spike
+  - micro_range
+
+  # Moderate structure context. These are included in the broad candidate but omitted in the core candidate.
+  - market_structure_void
+  - pullback_geometry
+  - support_resistance
+  - compressed_price_geometry
+
+  # New human-watched timeframe features: include all full versions, not lite.
+  - anchored_timeframe_candle
+  - anchored_timeframe_indicators
+  - timeframe_phase
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+excluded_existing_families_by_design:
+  - compressed_activity
+  - pivot_line
+  - rejection_reversal
+  - compressed_breakout
+  - fractal_structure
+  - enhanced_support_resistance
+  - enhanced_market_structure_void
+  - enhanced_pullback_geometry
+  - breakout
+  - volume_price_pressure
+  - acceleration
+
+notes:
+  - "Use after the core config if memory permits."
+  - "This keeps rolling support/void/pullback context because anchored timeframe levels may interact with existing rolling structure."
+  - "Still excludes compressed_activity and pivot_line, plus short/rejection-oriented and heavy enhanced structure families."

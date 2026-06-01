@@ -103,7 +103,23 @@ def audit_feature_frame(
     *,
     timestamp_col: str = "timestamp",
     exclude_patterns: Sequence[str] | None = None,
+    null_warn_rate: float = 0.95,
 ) -> FeatureAuditResult:
-    """Audit a feature matrix DataFrame and manifest."""
+    """Audit a feature matrix DataFrame and manifest.
+
+    Null-rate checks are warnings rather than violations.  High null rates can be
+    legitimate for long lookbacks on tiny smoke-test frames, but in production
+    feature matrices they usually indicate a broken denominator or all-NaN
+    derived feature.
+    """
     feature_columns = [c for c in features.columns if c != timestamp_col]
-    return audit_feature_columns(feature_columns, specs, exclude_patterns=exclude_patterns)
+    result = audit_feature_columns(feature_columns, specs, exclude_patterns=exclude_patterns)
+    if feature_columns and len(features) > 0:
+        null_rates = features[feature_columns].isna().mean().sort_values(ascending=False)
+        high_nulls = null_rates[null_rates > null_warn_rate]
+        if len(high_nulls):
+            examples = ", ".join(f"{name}={rate:.4f}" for name, rate in high_nulls.head(20).items())
+            result.warnings.append(
+                f"high-null feature columns above {null_warn_rate:.2f}: {examples}"
+            )
+    return result

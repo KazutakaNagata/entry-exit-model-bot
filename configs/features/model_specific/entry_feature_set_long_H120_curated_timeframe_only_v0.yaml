@@ -1,0 +1,24 @@
+feature_set_name: entry_feature_set_long_H120_curated_timeframe_only_v0
+purpose: "Human-watched anchored timeframe features only. Use as a diagnostic to see whether anchored candles/indicators/phase have standalone signal."
+side: long
+horizon_minutes: 120
+base_feature_set: human_timeframe_only
+
+include_families:
+  - anchored_timeframe_candle
+  - anchored_timeframe_indicators
+  - timeframe_phase
+
+exclude_patterns:
+  - "target_*"
+  - "future_*"
+  - "*_label*"
+  - "*label*"
+  - "*_y"
+  - "*hold_delta*"
+  - "*mfe*"
+  - "*mae*"
+  - "diag_*"
+
+notes:
+  - "Diagnostic only. If this is strong, anchored timeframe features have standalone power. If weak but plus-core improves, they are interaction/context features."
